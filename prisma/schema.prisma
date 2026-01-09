@@ -1,15 +1,176 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
-}
-
+// -------------------------------------------------------------------------
+// CONFIGURATION
+// -------------------------------------------------------------------------
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------------------
+// 1. LOCATION & AUTHENTICATION (ระบบพื้นที่และผู้ใช้งาน)
+// -------------------------------------------------------------------------
+
+model Location {
+  id           Int     @id @default(autoincrement())
+  provinceName String // จังหวัด [cite: 50, 55, 59, 64, 84, 90]
+  districtName String // อำเภอ [cite: 50, 55, 59, 64, 84, 90, 94]
+  subDistrict  String? // ตำบล [cite: 50, 55, 59, 64, 84, 90]
+
+  users        User[]
+  // Relations to data tables
+  measures     MeasureLog[]
+  pheocReports PheocReport[]
+  vulnerables  VulnerableData[]
+  inventories  InventoryLog[]
+  cleanRooms   CleanRoomReport[]
+  operations   OperationLog[]
+  incidents    StaffIncident[]
+  activeCares  ActiveCareLog[]
+  adminSupport LocalAdminSupport[]
+}
+
+enum Role {
+  ADMIN
+  SSJ // ระดับจังหวัด (สสจ.)
+  SSO // ระดับอำเภอ (สสอ.)
+  HOSPITAL // ระดับตำบล (รพ.สต. / รพช.)
+}
+
+model User {
+  id       String @id @default(cuid())
+  username String @unique
+  password String
+  name     String
+  role     Role   @default(HOSPITAL)
+  orgName  String // ชื่อหน่วยงาน
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// -------------------------------------------------------------------------
+// ส่วนที่ 1: ด้านมาตรการ และ สถานะ PHEOC [cite: 2]
+// -------------------------------------------------------------------------
+
+model MeasureLog {
+  id        Int     @id @default(autoincrement())
+  measureId String // รหัสข้อ 1.1 - 4.2 [cite: 4, 7, 11, 14, 18, 21, 24, 27, 31, 34]
+  status    Boolean @default(false) // ดำเนินการแล้ว / ยังไม่ดำเนินการ [cite: 5-36]
+  detail    String? @db.Text // รายละเอียดการดำเนินงาน [cite: 5, 8, 12, 15, 19, 22, 25, 28, 32, 35]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+  recordedBy String
+  createdAt  DateTime @default(now())
+}
+
+model PheocReport {
+  id            Int      @id @default(autoincrement())
+  reportDate    DateTime // วันที่รายงาน [cite: 38]
+  status        String // ยังไม่เปิด, เฝ้าระวังปกติ, เฝ้าระวังใกล้ชิด, เปิด PHEOC, ปิดศูนย์ [cite: 39-43, 46]
+  responseLevel String? // ระดับตอบโต้ 1-2 [cite: 44, 45]
+  pdfUrl        String? // ลิงก์แนบไฟล์เอกสาร PDF [cite: 47]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+  recordedAt DateTime @default(now())
+}
+
+// -------------------------------------------------------------------------
+// ส่วนที่ 2: จำนวนกลุ่มเปราะบาง/กลุ่มเสี่ยง [cite: 48]
+// -------------------------------------------------------------------------
+
+model VulnerableData {
+  id          Int      @id @default(autoincrement())
+  groupType   String // เด็กเล็ก, หญิงตั้งครรภ์, ผู้สูงอายุ, ติดเตียง, โรคหัวใจ, โรคทางเดินหายใจ [cite: 52]
+  targetCount Int      @default(0) // จำนวนเป้าหมาย (คน) [cite: 52]
+  recordDate  DateTime // วันที่บันทึกข้อมูล [cite: 51]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+}
+
+// -------------------------------------------------------------------------
+// ส่วนที่ 3: สถานที่และเวชภัณฑ์ [cite: 53]
+// -------------------------------------------------------------------------
+
+model InventoryLog {
+  id         Int      @id @default(autoincrement())
+  itemName   String // Surgical Mask, N95, คาร์บอน, ผ้า, มุ้งสู้ฝุ่น [cite: 57]
+  stockCount Int      @default(0) // จำนวนคงคลัง [cite: 57]
+  recordDate DateTime // วันที่บันทึกข้อมูล [cite: 56]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+}
+
+model CleanRoomReport {
+  id               Int      @id @default(autoincrement())
+  placeType        String // รพศ., รพท., รพช., รพ.สต., รพ.เอกชน, ศพด., โรงเรียน ฯลฯ [cite: 61]
+  placeCount       Int      @default(0) // จำนวนสถานที่ [cite: 61]
+  targetRoomCount  Int      @default(0) // จำนวนห้องเป้าหมาย [cite: 61]
+  passedStandard   Int      @default(0) // จำนวนห้องที่ผ่านมาตรฐาน [cite: 61]
+  anamaiStandard   Int      @default(0) // ห้องปลอดฝุ่นกรมอนามัย (1, 2, 3) [cite: 61]
+  serviceUserCount Int      @default(0) // จำนวนผู้รับบริการ (ราย) [cite: 61]
+  recordDate       DateTime // วันที่บันทึกข้อมูล [cite: 60]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+}
+
+// -------------------------------------------------------------------------
+// ส่วนที่ 4: ผลการดำเนินงาน [cite: 62]
+// -------------------------------------------------------------------------
+
+model OperationLog {
+  id           Int      @id @default(autoincrement())
+  activityType String // มุ้งสู้ฝุ่น, สนับสนุน PPE [cite: 63, 67]
+  targetGroup  String? // ประชาชนทั่วไป, เด็กเล็ก, หญิงตั้งครรภ์, ผู้สูงอายุ, ติดเตียง, 608 [cite: 68-82]
+  itemName     String? // รายการหน้ากากแต่ละชนิด 
+  amount       Int      @default(0) // จำนวนสนับสนุน 
+  recordDate   DateTime // วันที่บันทึกข้อมูล [cite: 65]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+}
+
+model StaffIncident {
+  id              Int      @id @default(autoincrement())
+  staffName       String // ชื่อ-นามสกุล เจ้าหน้าที่/จิตอาสา [cite: 86]
+  status          String // บาดเจ็บ, เสียชีวิต [cite: 87]
+  incidentDetails String   @db.Text // รายละเอียดเหตุการณ์ [cite: 88]
+  recordDate      DateTime // วันที่บันทึก [cite: 85]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+}
+
+model ActiveCareLog {
+  id         Int      @id @default(autoincrement())
+  activity   String // สอบสวนโรค, สุขภาพจิต, รักษาพยาบาล [cite: 92]
+  households Int      @default(0) // จำนวนครัวเรือนที่ดูแล [cite: 92]
+  people     Int      @default(0) // จำนวนประชาชนที่ดูแล [cite: 92]
+  riskGroups Int      @default(0) // จำนวนกลุ่มเสี่ยงที่ดูแล [cite: 92]
+  recordDate DateTime // วันที่บันทึก [cite: 91]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+}
+
+model LocalAdminSupport {
+  id               Int      @id @default(autoincrement())
+  orgCount         Int // จำนวน อปท. [cite: 96]
+  maskSupport      Int // สนับสนุน Mask [cite: 96]
+  dustNetSupport   Int // มุ้งสู้ฝุ่น [cite: 96]
+  cleanRoomSupport Int // ห้องปลอดฝุ่น [cite: 96]
+  recordDate       DateTime // วันที่บันทึก [cite: 95]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
 }
