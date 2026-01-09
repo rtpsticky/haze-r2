@@ -117,6 +117,9 @@ model CleanRoomReport {
   targetRoomCount  Int      @default(0) // จำนวนห้องเป้าหมาย [cite: 61]
   passedStandard   Int      @default(0) // จำนวนห้องที่ผ่านมาตรฐาน [cite: 61]
   anamaiStandard   Int      @default(0) // ห้องปลอดฝุ่นกรมอนามัย (1, 2, 3) [cite: 61]
+  standard1Count   Int      @default(0) // มาตรฐานระดับ 1
+  standard2Count   Int      @default(0) // มาตรฐานระดับ 2
+  standard3Count   Int      @default(0) // มาตรฐานระดับ 3
   serviceUserCount Int      @default(0) // จำนวนผู้รับบริการ (ราย) [cite: 61]
   recordDate       DateTime // วันที่บันทึกข้อมูล [cite: 60]
 
