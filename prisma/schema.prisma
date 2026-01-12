@@ -41,12 +41,13 @@ enum Role {
 }
 
 model User {
-  id       String @id @default(cuid())
-  username String @unique
-  password String
-  name     String
-  role     Role   @default(HOSPITAL)
-  orgName  String // ชื่อหน่วยงาน
+  id         String  @id @default(cuid())
+  username   String  @unique
+  password   String
+  name       String
+  role       Role    @default(HOSPITAL)
+  orgName    String // ชื่อหน่วยงาน
+  isApproved Boolean @default(false) // สถานะการอนุมัติใช้งาน
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])

@@ -50,16 +50,18 @@ export async function register(prevState, formData) {
                 orgName,
                 role: 'HOSPITAL',
                 locationId: location.id,
+                isApproved: false, // Default to false
             },
         })
 
-        await createSession(user.id)
+        // await createSession(user.id) // Do not auto-login
+        return { success: true, message: 'ลงทะเบียนสำเร็จ โปรดรอการอนุมัติจากผู้ดูแลระบบ' }
     } catch (error) {
         console.error('Registration Error:', error)
         return { message: 'เกิดข้อผิดพลาดในการสมัครสมาชิก' }
     }
 
-    redirect('/')
+    // redirect('/') // Do not redirect
 }
 
 export async function login(prevState, formData) {
@@ -76,6 +78,10 @@ export async function login(prevState, formData) {
 
     if (!user || !(await verifyPassword(password, user.password))) {
         return { message: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' }
+    }
+
+    if (user.isApproved === false) {
+        return { message: 'บัญชีของท่านอยู่ระหว่างรอการอนุมัติ กรุณาติดต่อผู้ดูแลระบบ' }
     }
 
     await createSession(user.id)
