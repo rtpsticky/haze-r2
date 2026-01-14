@@ -20,6 +20,7 @@ export async function savePheocReport(prevState, formData) {
         return { message: 'User not found', success: false }
     }
 
+    const id = formData.get('id')
     const reportDate = formData.get('reportDate')
     const status = formData.get('status') // 'NOT_OPEN', 'OPEN', 'CLOSED'
     let dbStatus = ''
@@ -72,21 +73,59 @@ export async function savePheocReport(prevState, formData) {
     }
 
     try {
-        await prisma.pheocReport.create({
-            data: {
+        if (id) {
+            // Update existing
+            const dataToUpdate = {
                 reportDate: new Date(reportDate),
                 status: dbStatus,
                 responseLevel: responseLevel,
-                pdfUrl: pdfUrl,
-                locationId: user.locationId,
-                recordedAt: new Date()
             }
-        })
+            if (pdfUrl) {
+                dataToUpdate.pdfUrl = pdfUrl
+            }
 
-        revalidatePath('/pheoc')
-        return { message: 'บันทึกรายงาน PHEOC เรียบร้อยแล้ว', success: true }
+            await prisma.pheocReport.update({
+                where: { id: parseInt(id) },
+                data: dataToUpdate
+            })
+            revalidatePath('/pheoc')
+            return { message: 'อัปเดตรายงาน PHEOC เรียบร้อยแล้ว', success: true }
+        } else {
+            // Create new
+            await prisma.pheocReport.create({
+                data: {
+                    reportDate: new Date(reportDate),
+                    status: dbStatus,
+                    responseLevel: responseLevel,
+                    pdfUrl: pdfUrl,
+                    locationId: user.locationId,
+                    recordedAt: new Date()
+                }
+            })
+            revalidatePath('/pheoc')
+            return { message: 'บันทึกรายงาน PHEOC เรียบร้อยแล้ว', success: true }
+        }
     } catch (error) {
         console.error('Database error:', error)
         return { message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', success: false }
     }
 }
+
+export async function deletePheocReport(id) {
+    const session = await getSession()
+    if (!session) {
+        return { message: 'Unauthorized', success: false }
+    }
+
+    try {
+        await prisma.pheocReport.delete({
+            where: { id: parseInt(id) }
+        })
+        revalidatePath('/pheoc')
+        return { message: 'ลบรายงานเรียบร้อยแล้ว', success: true }
+    } catch (error) {
+        console.error('Database error:', error)
+        return { message: 'เกิดข้อผิดพลาดในการลบข้อมูล', success: false }
+    }
+}
+

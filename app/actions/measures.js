@@ -27,11 +27,9 @@ export async function saveMeasures(prevState, formData) {
     ]
 
     try {
-        // We will save each measure as a new record for "today"
-        // Or update if we want to support editing (for simplicity, let's just create new logs for now as per plan, 
-        // but usually users might want to edit. I'll stick to creating new for history as per schema design typical for "Logs")
-
-        // Actually, distinct logs per submission is safer for history.
+        // Create timestamps for today start/end to check for existing records
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
 
         const timestamp = new Date()
 
@@ -42,18 +40,41 @@ export async function saveMeasures(prevState, formData) {
             // statusValue will be 'true' or 'false' string
             const status = statusValue === 'true'
 
-            // Only save if status is explicitly set (though radio buttons usually force one)
+            // Only save if status is explicitly set
             if (statusValue !== null) {
-                await prisma.measureLog.create({
-                    data: {
+                // Check for existing record today
+                const existing = await prisma.measureLog.findFirst({
+                    where: {
                         measureId: id,
-                        status: status,
-                        detail: status ? detail : null, // Only save detail if done, or maybe always? Request says "Actions taken... details", "Not taken". Assume detail only relevant if taken.
                         locationId: user.locationId,
-                        recordedBy: user.username,
-                        createdAt: timestamp
+                        createdAt: {
+                            gte: today
+                        }
                     }
                 })
+
+                if (existing) {
+                    // Update existing
+                    await prisma.measureLog.update({
+                        where: { id: existing.id },
+                        data: {
+                            status: status,
+                            detail: status ? detail : null,
+                        }
+                    })
+                } else {
+                    // Create new
+                    await prisma.measureLog.create({
+                        data: {
+                            measureId: id,
+                            status: status,
+                            detail: status ? detail : null,
+                            locationId: user.locationId,
+                            recordedBy: user.username,
+                            createdAt: timestamp
+                        }
+                    })
+                }
             }
         }
 
