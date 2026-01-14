@@ -8,7 +8,7 @@ const initialState = {
     success: false
 }
 
-export default function PheocForm({ initialData, onCancel, onSuccess }) {
+export default function PheocForm({ initialData, onCancel, onSuccess, idPrefix = '', className = '' }) {
     const [state, formAction, isPending] = useActionState(savePheocReport, initialState)
     const [mainStatus, setMainStatus] = useState('NOT_OPEN') // 'NOT_OPEN', 'OPEN', 'CLOSED'
     const [subStatusNotOpen, setSubStatusNotOpen] = useState('WATCH')
@@ -46,7 +46,7 @@ export default function PheocForm({ initialData, onCancel, onSuccess }) {
     }, [initialData])
 
     return (
-        <form action={formAction} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+        <form action={formAction} className={`bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8 ${className}`}>
             <div className="bg-emerald-50/50 px-6 py-4 border-b border-emerald-100 flex justify-between items-center">
                 <h2 className="text-lg font-semibold text-emerald-800">
                     {initialData ? 'แก้ไขรายงาน' : 'บันทึกรายงานใหม่'}
@@ -67,13 +67,13 @@ export default function PheocForm({ initialData, onCancel, onSuccess }) {
 
                 {/* Date Selection */}
                 <div>
-                    <label htmlFor="reportDate" className="block text-sm font-medium text-slate-800 mb-2">
+                    <label htmlFor={`${idPrefix}reportDate`} className="block text-sm font-medium text-slate-800 mb-2">
                         วันที่รายงาน
                     </label>
                     <input
                         type="date"
                         name="reportDate"
-                        id="reportDate"
+                        id={`${idPrefix}reportDate`}
                         required
                         defaultValue={initialData ? new Date(initialData.reportDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
                         className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
@@ -215,9 +215,9 @@ export default function PheocForm({ initialData, onCancel, onSuccess }) {
                                 <path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clipRule="evenodd" />
                             </svg>
                             <div className="mt-4 flex text-sm leading-6 text-slate-600 justify-center">
-                                <label htmlFor="file-upload" className="relative cursor-pointer rounded-md bg-white font-semibold text-emerald-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-600 focus-within:ring-offset-2 hover:text-emerald-500">
+                                <label htmlFor={`${idPrefix}file-upload`} className="relative cursor-pointer rounded-md bg-white font-semibold text-emerald-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-600 focus-within:ring-offset-2 hover:text-emerald-500">
                                     <span>Upload a file</span>
-                                    <input id="file-upload" name="file" type="file" accept=".pdf" className="sr-only" />
+                                    <input id={`${idPrefix}file-upload`} name="file" type="file" accept=".pdf" className="sr-only" />
                                 </label>
                                 <p className="pl-1">or drag and drop</p>
                             </div>
