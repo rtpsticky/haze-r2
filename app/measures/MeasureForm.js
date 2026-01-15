@@ -52,48 +52,58 @@ function MeasureItem({ item, initialValue }) {
     const [detail, setDetail] = useState(initialValue?.detail || '')
 
     return (
-        <div className="border-b border-slate-100 pb-6 mb-6 last:border-0 last:pb-0 last:mb-0">
-            <p className="text-slate-800 font-medium mb-3">{item.label}</p>
-            <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                        type="radio"
-                        name={`status_${item.id}`}
-                        value="true"
-                        className="w-4 h-4 text-emerald-600 border-slate-300 focus:ring-emerald-600"
-                        checked={status === 'true'}
-                        onChange={() => setStatus('true')}
-                        required
-                    />
-                    <span className="text-slate-700 group-hover:text-emerald-700 transition-colors">ดำเนินการแล้ว</span>
-                </label>
+        <div className="border border-slate-100 rounded-xl bg-slate-50/50 p-4 mb-4 transition-all hover:bg-white hover:shadow-md hover:border-emerald-100">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                <p className="text-slate-800 font-medium text-base leading-relaxed flex-1">{item.label}</p>
 
-                {status === 'true' && (
-                    <div className="ml-7 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <textarea
-                            name={`detail_${item.id}`}
-                            rows={3}
-                            className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
-                            placeholder="พิมพ์รายละเอียดการดำเนินงาน..."
-                            defaultValue={detail}
-                            onChange={(e) => setDetail(e.target.value)}
+                <div className="flex bg-slate-200 rounded-lg p-1 shrink-0 bg-white shadow-sm ring-1 ring-slate-200">
+                    <label className={`cursor-pointer px-4 py-2 rounded-md transition-all text-sm font-semibold flex items-center gap-2 ${status === 'true' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
+                        <input
+                            type="radio"
+                            name={`status_${item.id}`}
+                            value="true"
+                            className="sr-only"
+                            checked={status === 'true'}
+                            onChange={() => setStatus('true')}
                             required
                         />
-                    </div>
-                )}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                            <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143Z" clipRule="evenodd" />
+                        </svg>
+                        ดำเนินการแล้ว
+                    </label>
 
-                <label className="flex items-center gap-3 cursor-pointer group">
-                    <input
-                        type="radio"
-                        name={`status_${item.id}`}
-                        value="false"
-                        className="w-4 h-4 text-slate-400 border-slate-300 focus:ring-slate-400"
-                        checked={status === 'false'}
-                        onChange={() => setStatus('false')}
-                    />
-                    <span className="text-slate-700 group-hover:text-slate-900 transition-colors">ยังไม่ดำเนินการ</span>
-                </label>
+                    <label className={`cursor-pointer px-4 py-2 rounded-md transition-all text-sm font-semibold flex items-center gap-2 ${status === 'false' ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}>
+                        <input
+                            type="radio"
+                            name={`status_${item.id}`}
+                            value="false"
+                            className="sr-only"
+                            checked={status === 'false'}
+                            onChange={() => setStatus('false')}
+                        />
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clipRule="evenodd" />
+                        </svg>
+                        ยังไม่ทำ
+                    </label>
+                </div>
             </div>
+
+            {status === 'true' && (
+                <div className="mt-4 pl-0 md:pl-4 border-l-4 border-emerald-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <label className="block text-xs font-semibold text-emerald-700 mb-1 ml-1 uppercase tracking-wider">รายละเอียดการดำเนินการ</label>
+                    <textarea
+                        name={`detail_${item.id}`}
+                        rows={3}
+                        className="block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 py-3 px-4 text-slate-700 transition-all hover:bg-slate-50 focus:bg-white focus:shadow-md placeholder:text-slate-400 sm:text-sm"
+                        placeholder="ระบุรายละเอียดผลการดำเนินงาน..."
+                        defaultValue={detail}
+                        onChange={(e) => setDetail(e.target.value)}
+                        required
+                    />
+                </div>
+            )}
         </div>
     )
 }

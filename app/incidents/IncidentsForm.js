@@ -246,7 +246,7 @@ export default function IncidentsForm() {
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-slate-600 mb-1">รายละเอียด</label>
-                                <textarea required rows={3} className="block w-full rounded-lg border-slate-200 shadow-sm focus:border-blue-500 focus:ring-blue-500" value={editingIncident.incidentDetails} onChange={(e) => setEditingIncident({ ...editingIncident, incidentDetails: e.target.value })} />
+                                <textarea required rows={4} className="block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 py-3 px-4 text-slate-700 transition-all hover:bg-slate-50 focus:bg-white focus:shadow-md placeholder:text-slate-400" value={editingIncident.incidentDetails} onChange={(e) => setEditingIncident({ ...editingIncident, incidentDetails: e.target.value })} />
                             </div>
                             <div className="flex justify-end gap-3 pt-2">
                                 <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg">ยกเลิก</button>
@@ -309,7 +309,7 @@ export default function IncidentsForm() {
 
                         <div>
                             <label className="block text-sm font-semibold text-slate-600 mb-2">รายละเอียดเหตุการณ์ <span className="text-red-500">*</span></label>
-                            <textarea required rows={4} className="block w-full rounded-lg border-slate-200 shadow-sm focus:border-red-500 focus:ring-red-500 py-2.5 px-3 text-slate-700 transition-colors" placeholder="ระบุรายละเอียดเหตุการณ์..." value={formData.incidentDetails} onChange={(e) => handleChange('incidentDetails', e.target.value)} />
+                            <textarea required rows={4} className="block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 py-3 px-4 text-slate-700 transition-all hover:bg-slate-50 focus:bg-white focus:shadow-md placeholder:text-slate-400" placeholder="ระบุรายละเอียดเหตุการณ์..." value={formData.incidentDetails} onChange={(e) => handleChange('incidentDetails', e.target.value)} />
                         </div>
                     </div>
 
