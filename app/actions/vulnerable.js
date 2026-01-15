@@ -106,3 +106,74 @@ export async function saveVulnerableData(prevState, formData) {
         return { message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', success: false }
     }
 }
+
+export async function getVulnerableHistory() {
+    const session = await getSession()
+    if (!session) return []
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+    })
+
+    if (!user) return []
+
+    const data = await prisma.vulnerableData.findMany({
+        where: {
+            locationId: user.locationId,
+        },
+        orderBy: {
+            recordDate: 'desc',
+        },
+    })
+
+    // Group by date
+    const history = {}
+    data.forEach(record => {
+        const dateStr = record.recordDate.toISOString().split('T')[0]
+        if (!history[dateStr]) {
+            history[dateStr] = {
+                date: dateStr,
+                totalCount: 0,
+                records: []
+            }
+        }
+        history[dateStr].totalCount += record.targetCount
+        history[dateStr].records.push(record)
+    })
+
+    return Object.values(history).sort((a, b) => new Date(b.date) - new Date(a.date))
+}
+
+export async function deleteVulnerableReport(dateStr) {
+    const session = await getSession()
+    if (!session) return { success: false, message: 'Unauthorized' }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+    })
+
+    if (!user) return { success: false, message: 'User not found' }
+
+    const targetDate = new Date(dateStr)
+    const startOfDay = new Date(targetDate)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(targetDate)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    try {
+        await prisma.vulnerableData.deleteMany({
+            where: {
+                locationId: user.locationId,
+                recordDate: {
+                    gte: startOfDay,
+                    lte: endOfDay
+                }
+            }
+        })
+        revalidatePath('/vulnerable')
+        return { success: true, message: 'ลบข้อมูลเรียบร้อยแล้ว' }
+    } catch (error) {
+        console.error('Error deleting vulnerable data:', error)
+        return { success: false, message: 'เกิดข้อผิดพลาดในการลบข้อมูล' }
+    }
+}

@@ -97,3 +97,78 @@ export async function saveInventoryData(prevState, formData) {
         return { message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', success: false }
     }
 }
+
+export async function getInventoryHistory() {
+    const session = await getSession()
+    if (!session) return []
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+    })
+
+    if (!user) return []
+
+    const data = await prisma.inventoryLog.findMany({
+        where: {
+            locationId: user.locationId,
+        },
+        orderBy: {
+            recordDate: 'desc',
+        },
+    })
+
+    // Group by date
+    const history = {}
+    data.forEach(record => {
+        const dateStr = record.recordDate.toISOString().split('T')[0]
+        if (!history[dateStr]) {
+            history[dateStr] = {
+                date: dateStr,
+                totalItems: 0,
+                records: []
+            }
+        }
+        // Count distinct items or sum stock? 
+        // Let's sum stock count for a rough "total items" metric, or just count records.
+        // Summing stock count might be weird if units differ (but here it's mostly 'pieces').
+        // Let's just sum stockCount.
+        history[dateStr].totalItems += record.stockCount
+        history[dateStr].records.push(record)
+    })
+
+    return Object.values(history).sort((a, b) => new Date(b.date) - new Date(a.date))
+}
+
+export async function deleteInventoryReport(dateStr) {
+    const session = await getSession()
+    if (!session) return { success: false, message: 'Unauthorized' }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+    })
+
+    if (!user) return { success: false, message: 'User not found' }
+
+    const targetDate = new Date(dateStr)
+    const startOfDay = new Date(targetDate)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(targetDate)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    try {
+        await prisma.inventoryLog.deleteMany({
+            where: {
+                locationId: user.locationId,
+                recordDate: {
+                    gte: startOfDay,
+                    lte: endOfDay
+                }
+            }
+        })
+        revalidatePath('/inventory')
+        return { success: true, message: 'ลบข้อมูลเรียบร้อยแล้ว' }
+    } catch (error) {
+        console.error('Error deleting inventory data:', error)
+        return { success: false, message: 'เกิดข้อผิดพลาดในการลบข้อมูล' }
+    }
+}
