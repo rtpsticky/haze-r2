@@ -24,7 +24,7 @@ export default async function Page() {
     return (
         <>
             <VulnerableForm user={user} />
-            <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
                 <VulnerableHistory history={history} />
             </div>
         </>

@@ -10,40 +10,29 @@ export const items = [
 
 export default function InventoryInputs({ counts, onChange, disabled = false }) {
     return (
-        <div className="overflow-hidden shadow-sm ring-1 ring-slate-200 rounded-xl bg-slate-50">
-            <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-emerald-600">
-                    <tr>
-                        <th scope="col" className="py-5 pl-6 pr-3 text-left text-lg font-semibold text-white sm:pl-8">
-                            รายการ
-                        </th>
-                        <th scope="col" className="px-3 py-5 text-right text-lg font-semibold text-white sm:pr-8">
-                            จำนวนคงคลัง
-                        </th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
-                    {items.map((item) => (
-                        <tr key={item.key} className="hover:bg-slate-50 transition-colors">
-                            <td className="whitespace-nowrap py-6 pl-6 pr-3 text-lg font-medium text-slate-700 sm:pl-8">
-                                {item.label}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4 text-right sm:pr-8">
-                                <input
-                                    type="number"
-                                    name={item.key}
-                                    min="0"
-                                    disabled={disabled}
-                                    placeholder="0"
-                                    value={counts[item.key] || ''}
-                                    onChange={(e) => onChange(item.key, e.target.value)}
-                                    className="block w-40 ml-auto rounded-xl border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-2xl font-bold text-emerald-700 text-right py-3 px-4 placeholder:text-slate-200 disabled:opacity-50 disabled:bg-slate-100"
-                                />
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+            {items.map((item) => (
+                <div key={item.key} className="bg-slate-50 border border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-between text-center transition-all hover:bg-white hover:shadow-md hover:scale-[1.02]">
+                    <label className="text-base font-semibold text-slate-700 mb-4 h-12 flex items-center justify-center">
+                        {item.label}
+                    </label>
+                    <div className="w-full relative">
+                        <input
+                            type="number"
+                            name={item.key}
+                            min="0"
+                            disabled={disabled}
+                            placeholder="0"
+                            value={counts[item.key] || ''}
+                            onChange={(e) => onChange(item.key, e.target.value)}
+                            className="block w-full text-center rounded-xl border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-3xl font-bold text-emerald-600 py-3 px-4 placeholder:text-slate-200 disabled:opacity-50 disabled:bg-slate-100"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400 font-medium pointer-events-none">
+                            คงเหลือ
+                        </span>
+                    </div>
+                </div>
+            ))}
         </div>
     )
 }
