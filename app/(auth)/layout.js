@@ -5,7 +5,7 @@ export default function AuthLayout({ children }) {
             {/* Background Decor */}
             <div className="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-emerald-100/50 to-transparent skew-y-[-3deg] transform origin-top-left -translate-y-20"></div>
 
-            <div className="max-w-md w-full mx-4 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-10">
+            <div className="max-w-5xl w-full mx-4 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-10">
                 <div className="p-8 sm:p-10">
                     {children}
                 </div>

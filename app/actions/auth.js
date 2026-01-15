@@ -11,7 +11,9 @@ export async function register(prevState, formData) {
     const confirmPassword = formData.get('confirmPassword')
     const orgName = formData.get('orgName')
 
-    if (!name || !username || !password || !orgName) {
+    const locationId = formData.get('locationId')
+
+    if (!name || !username || !password || !orgName || !locationId) {
         return { message: 'กรุณากรอกข้อมูลให้ครบถ้วน' }
     }
 
@@ -29,16 +31,13 @@ export async function register(prevState, formData) {
 
     const hashedPassword = await hashPassword(password)
 
-    // Find or create default location
-    let location = await prisma.location.findFirst()
+    // Verify location exists
+    const location = await prisma.location.findUnique({
+        where: { id: parseInt(locationId) }
+    })
+
     if (!location) {
-        location = await prisma.location.create({
-            data: {
-                provinceName: '-',
-                districtName: '-',
-                subDistrict: '-',
-            },
-        })
+        return { message: 'ไม่พบข้อมูลสถานที่ที่เลือก' }
     }
 
     try {
