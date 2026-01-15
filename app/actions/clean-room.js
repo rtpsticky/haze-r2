@@ -123,3 +123,83 @@ export async function saveCleanRoomData(prevState, formData) {
         return { message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', success: false }
     }
 }
+
+export async function getCleanRoomHistory() {
+    const session = await getSession()
+    if (!session) return []
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+    })
+
+    if (!user) return []
+
+    const history = await prisma.cleanRoomReport.groupBy({
+        by: ['recordDate'],
+        where: { locationId: user.locationId },
+        _sum: {
+            passedStandard: true,
+            targetRoomCount: true,
+            placeCount: true
+        },
+        orderBy: {
+            recordDate: 'desc'
+        }
+    })
+
+    return history.map(item => ({
+        recordDate: item.recordDate,
+        totalPassed: item._sum.passedStandard || 0,
+        totalTarget: item._sum.targetRoomCount || 0,
+        totalPlaces: item._sum.placeCount || 0
+    }))
+}
+
+export async function deleteCleanRoomReport(dateStr) {
+    const session = await getSession()
+    if (!session) {
+        return { success: false, message: 'Unauthorized' }
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+    })
+
+    if (!user) {
+        return { success: false, message: 'User not found' }
+    }
+
+    try {
+        const targetDate = new Date(dateStr)
+        // Ensure assuming midnight if encoded in dateStr, but safer to query range or ensure exact match logic matches save
+        // The save logic sets hours to 0,0,0,0.
+        // If dateStr is "YYYY-MM-DD", `new Date(dateStr)` treats it as UTC usually?
+        // Wait, `new Date("2023-01-01")` is UTC. `new Date(2023, 0, 1)` is local.
+        // In `saveCleanRoomData`: `const recordDate = new Date(formData.get('recordDate'))` (input type=date returns YYYY-MM-DD)
+        // `recordDate.setHours(0, 0, 0, 0)` -> This sets it to local midnight.
+
+        // So here:
+        const date = new Date(dateStr)
+        date.setHours(0, 0, 0, 0) // Should match the saved format if running in same timezone env.
+
+        // To be safe against timezone issues, maybe use a range?
+        // But `save` sets it to specific timestamp.
+        // Let's try matching with range covering the whole day just to be safe, or just exact match if we trust the object.
+        // Prisma `DateTime` is UTC.
+        // If `save` uses `setHours(0,0,0,0)` in system time, then saves to DB (converted to UTC).
+        // Let's just use the exact same logic as `save` for constructing the date object.
+
+        await prisma.cleanRoomReport.deleteMany({
+            where: {
+                locationId: user.locationId,
+                recordDate: date
+            }
+        })
+
+        revalidatePath('/clean-room')
+        return { success: true }
+    } catch (error) {
+        console.error('Error deleting clean room report:', error)
+        return { success: false, message: 'Failed to delete report' }
+    }
+}

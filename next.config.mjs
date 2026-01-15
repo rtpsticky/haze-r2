@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: '/haze-r2',
+  basePath: '/haze-input',
 };
 
 export default nextConfig;

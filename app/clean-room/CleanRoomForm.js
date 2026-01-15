@@ -1,27 +1,40 @@
 'use client'
 
 import { useActionState, useState, useEffect } from 'react'
-import { saveCleanRoomData, getCleanRoomData } from '@/app/actions/clean-room'
+import { saveCleanRoomData, getCleanRoomData, getCleanRoomHistory, deleteCleanRoomReport } from '@/app/actions/clean-room'
 import Link from 'next/link'
-
-const placeTypes = [
-    'โรงพยาบาลศูนย์',
-    'โรงพยาบาลทั่วไป',
-    'โรงพยาบาลชุมชน',
-    'โรงพยาบาลส่งเสริมสุขภาพตำบล',
-    'โรงพยาบาลเอกชน',
-    'โรงพยาบาลสังกัดกระทรวงกลาโหม',
-    'โรงพยาบาลมหาวิทยาลัย',
-    'สสจ./สสอ.',
-    'หน่วยงานภาครัฐ (อบจ/อบต./สนง.ต่างๆ)',
-    'ศูนย์ดูแลผู้สูงอายุ',
-]
+import Modal from '@/app/pheoc/Modal'
+import CleanRoomTable from './CleanRoomTable'
 
 export default function CleanRoomForm({ user }) {
     const [state, formAction, isPending] = useActionState(saveCleanRoomData, { message: '', success: false })
     const [date, setDate] = useState(new Date().toISOString().split('T')[0])
     const [formData, setFormData] = useState({})
     const [isLoadingData, setIsLoadingData] = useState(false)
+    const [history, setHistory] = useState([])
+    const [isLoadingHistory, setIsLoadingHistory] = useState(true)
+
+    // Edit Modal State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+    const [editingDate, setEditingDate] = useState(null)
+    const [editFormData, setEditFormData] = useState({})
+    const [isLoadingEditData, setIsLoadingEditData] = useState(false)
+    const [isSavingEdit, setIsSavingEdit] = useState(false)
+
+    const fetchHistory = async () => {
+        try {
+            const data = await getCleanRoomHistory()
+            setHistory(data)
+        } catch (e) {
+            console.error('Failed to fetch history:', e)
+        } finally {
+            setIsLoadingHistory(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchHistory()
+    }, [state.success]) // Refresh history when a new report is saved successfully
 
     useEffect(() => {
         async function fetchData() {
@@ -50,6 +63,95 @@ export default function CleanRoomForm({ user }) {
 
     const handleChange = (key, value) => {
         setFormData(prev => ({ ...prev, [key]: value }))
+    }
+
+    const handleEditChange = (key, value) => {
+        setEditFormData(prev => ({ ...prev, [key]: value }))
+    }
+
+    const handleEdit = async (record) => {
+        const d = new Date(record.recordDate)
+        const year = d.getFullYear()
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+
+        setEditingDate(dateStr)
+        setIsEditModalOpen(true)
+        setIsLoadingEditData(true)
+
+        try {
+            const data = await getCleanRoomData(dateStr)
+            const newData = {}
+            data.forEach(rec => {
+                newData[`${rec.placeType}_placeCount`] = rec.placeCount
+                newData[`${rec.placeType}_targetRoomCount`] = rec.targetRoomCount
+                newData[`${rec.placeType}_passedStandard`] = rec.passedStandard
+                newData[`${rec.placeType}_standard1Count`] = rec.standard1Count
+                newData[`${rec.placeType}_standard2Count`] = rec.standard2Count
+                newData[`${rec.placeType}_standard3Count`] = rec.standard3Count
+                newData[`${rec.placeType}_serviceUserCount`] = rec.serviceUserCount
+            })
+            setEditFormData(newData)
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setIsLoadingEditData(false)
+        }
+    }
+
+    const handleSaveEdit = async () => {
+        setIsSavingEdit(true)
+        try {
+            const formDataObj = new FormData()
+            formDataObj.append('recordDate', editingDate)
+            Object.keys(editFormData).forEach(key => {
+                formDataObj.append(key, editFormData[key])
+            })
+
+            const result = await saveCleanRoomData(null, formDataObj)
+            if (result.success) {
+                setIsEditModalOpen(false)
+                fetchHistory()
+                // If editing the same date as currently selected in main form, refresh that too
+                if (date === editingDate) {
+                    // trigger re-fetch basically? 
+                    // The main form effectively listens to `date`, but we update `formData` locally.
+                    // Ideally we should reload.
+                    window.location.reload()
+                }
+            } else {
+                alert(result.message || 'บันทึกไม่สำเร็จ')
+            }
+        } catch (e) {
+            console.error(e)
+            alert('เกิดข้อผิดพลาด')
+        } finally {
+            setIsSavingEdit(false)
+        }
+    }
+
+    const handleDelete = async (recordDate) => {
+        if (!confirm('ยืนยันการลบข้อมูลนี้?')) return
+        const d = new Date(recordDate)
+        const year = d.getFullYear()
+        const month = String(d.getMonth() + 1).padStart(2, '0')
+        const day = String(d.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+
+        try {
+            const res = await deleteCleanRoomReport(dateStr)
+            if (res.success) {
+                fetchHistory()
+                if (date === dateStr) {
+                    setFormData({}) // Clear form if current date was deleted
+                }
+            } else {
+                alert('ลบข้อมูลไม่สำเร็จ')
+            }
+        } catch (e) {
+            alert('เกิดข้อผิดพลาด')
+        }
     }
 
     if (state.success) {
@@ -93,7 +195,7 @@ export default function CleanRoomForm({ user }) {
                     </div>
                 </div>
 
-                <form action={formAction} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                <form action={formAction} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
                     <div className="p-6 space-y-6">
                         {/* Date Selection */}
                         <div>
@@ -112,89 +214,7 @@ export default function CleanRoomForm({ user }) {
                         </div>
 
                         {/* Table */}
-                        <div className="overflow-x-auto shadow-sm ring-1 ring-slate-200 rounded-xl bg-slate-50">
-                            <table className="min-w-full divide-y divide-slate-200">
-                                <thead className="bg-emerald-600 text-white">
-                                    <tr>
-                                        <th rowSpan="2" className="py-4 pl-4 pr-3 text-left text-sm font-semibold sm:pl-6 min-w-[200px]">สถานที</th>
-                                        <th rowSpan="2" className="px-2 py-4 text-center text-sm font-semibold min-w-[100px]">จำนวนสถานที่<br />(แห่ง)</th>
-                                        <th rowSpan="2" className="px-2 py-4 text-center text-sm font-semibold min-w-[100px]">ห้องปลอดฝุ่น<br />ตามเป้าหมาย (ห้อง)</th>
-                                        <th rowSpan="2" className="px-2 py-4 text-center text-sm font-semibold min-w-[120px]">ห้องปลอดฝุ่นที่<br />ผ่านมาตรฐาน (ห้อง)</th>
-                                        <th colSpan="3" className="px-2 py-2 text-center text-sm font-semibold border-b border-emerald-500">รูปแบบมาตรฐาน (ห้อง)</th>
-                                        <th rowSpan="2" className="px-2 py-4 text-center text-sm font-semibold min-w-[100px]">ผู้รับบริการ<br />(ราย)</th>
-                                    </tr>
-                                    <tr>
-                                        <th className="px-2 py-2 text-center text-sm font-semibold w-16 bg-emerald-700/30">1</th>
-                                        <th className="px-2 py-2 text-center text-sm font-semibold w-16 bg-emerald-700/30">2</th>
-                                        <th className="px-2 py-2 text-center text-sm font-semibold w-16 bg-emerald-700/30">3</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-200 bg-white">
-                                    {isLoadingData ? (
-                                        <tr>
-                                            <td colSpan="8" className="py-12 text-center text-slate-500 text-lg">กำลังโหลดข้อมูล...</td>
-                                        </tr>
-                                    ) : (
-                                        placeTypes.map((type) => (
-                                            <tr key={type} className="hover:bg-slate-50 transition-colors">
-                                                <td className="py-4 pl-4 pr-3 text-sm font-medium text-slate-900 sm:pl-6">
-                                                    {type}
-                                                </td>
-                                                <td className="px-2 py-2">
-                                                    <input type="number" min="0" placeholder="0"
-                                                        name={`${type}_placeCount`}
-                                                        value={formData[`${type}_placeCount`] || ''}
-                                                        onChange={(e) => handleChange(`${type}_placeCount`, e.target.value)}
-                                                        className="block w-full rounded-md border-slate-300 py-1.5 text-center text-sm focus:ring-emerald-500 focus:border-emerald-500" />
-                                                </td>
-                                                <td className="px-2 py-2">
-                                                    <input type="number" min="0" placeholder="0"
-                                                        name={`${type}_targetRoomCount`}
-                                                        value={formData[`${type}_targetRoomCount`] || ''}
-                                                        onChange={(e) => handleChange(`${type}_targetRoomCount`, e.target.value)}
-                                                        className="block w-full rounded-md border-slate-300 py-1.5 text-center text-sm focus:ring-emerald-500 focus:border-emerald-500" />
-                                                </td>
-                                                <td className="px-2 py-2">
-                                                    <input type="number" min="0" placeholder="0"
-                                                        name={`${type}_passedStandard`}
-                                                        value={formData[`${type}_passedStandard`] || ''}
-                                                        onChange={(e) => handleChange(`${type}_passedStandard`, e.target.value)}
-                                                        className="block w-full rounded-md border-slate-300 py-1.5 text-center text-sm focus:ring-emerald-500 focus:border-emerald-500" />
-                                                </td>
-                                                <td className="px-1 py-2 bg-slate-50/50">
-                                                    <input type="number" min="0" placeholder="0"
-                                                        name={`${type}_standard1Count`}
-                                                        value={formData[`${type}_standard1Count`] || ''}
-                                                        onChange={(e) => handleChange(`${type}_standard1Count`, e.target.value)}
-                                                        className="block w-full rounded-md border-slate-300 py-1.5 text-center text-sm focus:ring-emerald-500 focus:border-emerald-500" />
-                                                </td>
-                                                <td className="px-1 py-2 bg-slate-50/50">
-                                                    <input type="number" min="0" placeholder="0"
-                                                        name={`${type}_standard2Count`}
-                                                        value={formData[`${type}_standard2Count`] || ''}
-                                                        onChange={(e) => handleChange(`${type}_standard2Count`, e.target.value)}
-                                                        className="block w-full rounded-md border-slate-300 py-1.5 text-center text-sm focus:ring-emerald-500 focus:border-emerald-500" />
-                                                </td>
-                                                <td className="px-1 py-2 bg-slate-50/50">
-                                                    <input type="number" min="0" placeholder="0"
-                                                        name={`${type}_standard3Count`}
-                                                        value={formData[`${type}_standard3Count`] || ''}
-                                                        onChange={(e) => handleChange(`${type}_standard3Count`, e.target.value)}
-                                                        className="block w-full rounded-md border-slate-300 py-1.5 text-center text-sm focus:ring-emerald-500 focus:border-emerald-500" />
-                                                </td>
-                                                <td className="px-2 py-2">
-                                                    <input type="number" min="0" placeholder="0"
-                                                        name={`${type}_serviceUserCount`}
-                                                        value={formData[`${type}_serviceUserCount`] || ''}
-                                                        onChange={(e) => handleChange(`${type}_serviceUserCount`, e.target.value)}
-                                                        className="block w-full rounded-md border-slate-300 py-1.5 text-center text-sm focus:ring-emerald-500 focus:border-emerald-500" />
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                        <CleanRoomTable formData={formData} handleChange={handleChange} isLoadingData={isLoadingData} />
                     </div>
 
                     <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-100">
@@ -211,6 +231,83 @@ export default function CleanRoomForm({ user }) {
                         </button>
                     </div>
                 </form>
+
+                {/* History Table */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div className="p-6">
+                        <h2 className="text-lg font-semibold text-slate-900 mb-4">ประวัติการบันทึกข้อมูล</h2>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">จำนวนสถานที่</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">เป้าหมาย (ห้อง)</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">ผ่านมาตรฐาน (ห้อง)</th>
+                                        <th scope="col" className="relative px-6 py-3">
+                                            <span className="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-slate-200">
+                                    {isLoadingHistory ? (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-4 text-center text-sm text-slate-500">กำลังโหลดข้อมูล...</td>
+                                        </tr>
+                                    ) : history.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="5" className="px-6 py-4 text-center text-sm text-slate-500">ไม่พบประวัติการบันทึก</td>
+                                        </tr>
+                                    ) : (
+                                        history.map((record, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                                                    {new Date(record.recordDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalPlaces}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalTarget}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center hover:font-bold hover:text-emerald-600 transition-colors cursor-default">
+                                                    {record.totalPassed}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <button onClick={() => handleEdit(record)} className="text-emerald-600 hover:text-emerald-900 mr-4">แก้ไข</button>
+                                                    <button onClick={() => handleDelete(record.recordDate)} className="text-red-600 hover:text-red-900">ลบ</button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Edit Modal */}
+                <Modal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    title={`แก้ไขข้อมูลวันที่ ${editingDate ? new Date(editingDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}`}
+                    maxWidth="sm:max-w-[90%]"
+                >
+                    <div className="space-y-4 max-h-[80vh] overflow-y-auto p-1">
+                        <CleanRoomTable formData={editFormData} handleChange={handleEditChange} isLoadingData={isLoadingEditData} />
+                        <div className="pt-4 flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-200"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                disabled={isSavingEdit || isLoadingEditData}
+                                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                            >
+                                {isSavingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
             </div>
         </div>
     )

@@ -1,4 +1,4 @@
-export default function Modal({ isOpen, onClose, title, children }) {
+export default function Modal({ isOpen, onClose, title, maxWidth = 'sm:max-w-2xl', children }) {
     if (!isOpen) return null
 
     return (
@@ -12,7 +12,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
                 ></div>
 
                 {/* Modal Panel */}
-                <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                <div className={`relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full ${maxWidth}`}>
                     <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                         <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
                             {title && (
