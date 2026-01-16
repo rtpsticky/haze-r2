@@ -36,6 +36,7 @@ export default function IncidentsForm() {
     const [selectedSubDistrict, setSelectedSubDistrict] = useState(null)
     const [currentLocationId, setCurrentLocationId] = useState(null)
     const [isLocationInitialized, setIsLocationInitialized] = useState(false)
+    const [isProvinceLocked, setIsProvinceLocked] = useState(false)
 
     // Edit Modal State
     const [editingIncident, setEditingIncident] = useState(null)
@@ -63,6 +64,7 @@ export default function IncidentsForm() {
                 if (res.success && res.data.location) {
                     const loc = res.data.location
                     setCurrentLocationId(loc.id)
+                    setIsProvinceLocked(true)
 
                     // Helper to sync selectors
                     const setSelectors = async () => {
@@ -268,7 +270,7 @@ export default function IncidentsForm() {
                         <div className="md:col-span-2">
                             <label className="block text-sm font-semibold text-slate-600 mb-2">จังหวัด อำเภอ ตำบล</label>
                             <div className="grid grid-cols-3 gap-3">
-                                <Select placeholder="เลือกจังหวัด" options={provinces} value={selectedProvince} onChange={handleProvinceChange} styles={customStyles} isClearable />
+                                <Select placeholder="เลือกจังหวัด" options={provinces} value={selectedProvince} onChange={handleProvinceChange} styles={customStyles} isClearable={!isProvinceLocked} isDisabled={isProvinceLocked} />
                                 <Select placeholder="เลือกอำเภอ" options={districts} value={selectedDistrict} onChange={handleDistrictChange} isDisabled={!selectedProvince} styles={customStyles} isClearable />
                                 <Select placeholder="เลือกตำบล" options={subDistricts} value={selectedSubDistrict} onChange={handleSubDistrictChange} isDisabled={!selectedDistrict} styles={customStyles} isClearable />
                             </div>

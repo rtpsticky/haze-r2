@@ -41,6 +41,7 @@ export default function ProactiveCareForm() {
     const [selectedSubDistrict, setSelectedSubDistrict] = useState(null)
     const [currentLocationId, setCurrentLocationId] = useState(null)
     const [isLocationInitialized, setIsLocationInitialized] = useState(false)
+    const [isProvinceLocked, setIsProvinceLocked] = useState(false)
 
     // Modal Form State
     const [editDate, setEditDate] = useState(new Date().toISOString().split('T')[0])
@@ -76,6 +77,7 @@ export default function ProactiveCareForm() {
                 if (res.success && res.data.location) {
                     const loc = res.data.location
                     setCurrentLocationId(loc.id)
+                    setIsProvinceLocked(true)
 
                     const setSelectors = async () => {
                         const provOpt = { value: loc.provinceName, label: loc.provinceName }
@@ -208,7 +210,7 @@ export default function ProactiveCareForm() {
                     การดูแลเชิงรุกและการสนับสนุน
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Select placeholder="เลือกจังหวัด" options={provinces} value={selectedProvince} onChange={handleProvinceChange} styles={customStyles} isClearable />
+                    <Select placeholder="เลือกจังหวัด" options={provinces} value={selectedProvince} onChange={handleProvinceChange} styles={customStyles} isClearable={!isProvinceLocked} isDisabled={isProvinceLocked} />
                     <Select placeholder="เลือกอำเภอ" options={districts} value={selectedDistrict} onChange={handleDistrictChange} isDisabled={!selectedProvince} styles={customStyles} isClearable />
                     <Select placeholder="เลือกตำบล" options={subDistricts} value={selectedSubDistrict} onChange={handleSubDistrictChange} isDisabled={!selectedDistrict} styles={customStyles} isClearable />
                 </div>
