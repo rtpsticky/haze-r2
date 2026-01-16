@@ -5,6 +5,8 @@ import InventoryForm from './InventoryForm'
 import InventoryHistory from './InventoryHistory'
 import { getInventoryHistory } from '@/app/actions/inventory'
 
+export const dynamic = 'force-dynamic'
+
 async function getUser(userId) {
     return await prisma.user.findUnique({
         where: { id: userId },

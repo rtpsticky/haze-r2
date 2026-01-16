@@ -5,6 +5,8 @@ import VulnerableForm from './VulnerableForm'
 import VulnerableHistory from './VulnerableHistory'
 import { getVulnerableHistory } from '@/app/actions/vulnerable'
 
+export const dynamic = 'force-dynamic'
+
 async function getUser(userId) {
     return await prisma.user.findUnique({
         where: { id: userId },

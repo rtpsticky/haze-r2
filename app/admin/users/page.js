@@ -1,5 +1,8 @@
 import { getPendingUsers, approveUser, rejectUser } from '@/app/actions/admin'
 
+export const dynamic = 'force-dynamic'
+
+
 export default async function AdminUsersPage() {
     const users = await getPendingUsers()
 

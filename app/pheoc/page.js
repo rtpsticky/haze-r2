@@ -4,6 +4,8 @@ import Link from 'next/link'
 import PheocManager from './PheocManager'
 import { redirect } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 export default async function PheocPage() {
     const session = await getSession()
     if (!session) {
