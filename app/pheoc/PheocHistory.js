@@ -2,16 +2,42 @@
 
 import { deletePheocReport } from "@/app/actions/pheoc"
 import { useTransition } from "react"
+import Swal from 'sweetalert2'
 
 export default function PheocHistory({ reports, onEdit }) {
     const [isPending, startTransition] = useTransition()
 
     const handleDelete = async (id) => {
-        if (confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')) {
+        const result = await Swal.fire({
+            title: 'ยืนยันการลบ?',
+            text: "คุณต้องการลบรายงานนี้ใช่หรือไม่? ข้อมูลจะไม่สามารถกู้คืนได้",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'ใช่, ลบเลย',
+            cancelButtonText: 'ยกเลิก'
+        })
+
+        if (result.isConfirmed) {
             startTransition(async () => {
-                const result = await deletePheocReport(id)
-                if (!result.success) {
-                    alert(result.message)
+                const res = await deletePheocReport(id)
+                if (res.success) {
+                    Swal.fire({
+                        title: 'ลบสำเร็จ!',
+                        text: res.message,
+                        icon: 'success',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#059669'
+                    })
+                } else {
+                    Swal.fire({
+                        title: 'เกิดข้อผิดพลาด',
+                        text: res.message,
+                        icon: 'error',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#dc2626'
+                    })
                 }
             })
         }

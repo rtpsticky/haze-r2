@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import fs from 'fs/promises'
 import path from 'path'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function savePheocReport(prevState, formData) {
     const session = await getSession()
@@ -58,8 +59,9 @@ export async function savePheocReport(prevState, formData) {
 
             await fs.mkdir(uploadDir, { recursive: true })
 
-            const timestamp = Date.now()
-            const filename = `${timestamp}-${file.name}`
+            // UUID naming
+            const extension = file.name.split('.').pop()
+            const filename = `${uuidv4()}.${extension}`
             const filepath = path.join(uploadDir, filename)
 
             const buffer = Buffer.from(await file.arrayBuffer())
@@ -128,4 +130,3 @@ export async function deletePheocReport(id) {
         return { message: 'เกิดข้อผิดพลาดในการลบข้อมูล', success: false }
     }
 }
-

@@ -2,6 +2,7 @@
 
 import { useActionState, useState, useEffect } from 'react'
 import { savePheocReport } from '@/app/actions/pheoc'
+import Swal from 'sweetalert2'
 
 const initialState = {
     message: '',
@@ -13,12 +14,29 @@ export default function PheocForm({ initialData, onCancel, onSuccess, idPrefix =
     const [mainStatus, setMainStatus] = useState('NOT_OPEN') // 'NOT_OPEN', 'OPEN', 'CLOSED'
     const [subStatusNotOpen, setSubStatusNotOpen] = useState('WATCH')
     const [subStatusOpen, setSubStatusOpen] = useState('RESPONSE_1')
+    const [filename, setFilename] = useState('')
 
     useEffect(() => {
-        if (state.success && onSuccess) {
-            onSuccess();
+        if (state.success) {
+            Swal.fire({
+                title: 'บันทึกสำเร็จ',
+                text: state.message,
+                icon: 'success',
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#059669'
+            }).then(() => {
+                if (onSuccess) onSuccess();
+            });
+        } else if (state.message) {
+            Swal.fire({
+                title: 'พบข้อผิดพลาด',
+                text: state.message,
+                icon: 'error',
+                confirmButtonText: 'ตกลง',
+                confirmButtonColor: '#dc2626'
+            });
         }
-    }, [state.success, onSuccess]);
+    }, [state, onSuccess]);
 
     useEffect(() => {
         if (initialData) {
@@ -176,24 +194,44 @@ export default function PheocForm({ initialData, onCancel, onSuccess, idPrefix =
 
                 {/* File Upload */}
                 <div>
-                    <label htmlFor="file" className="block text-sm font-medium text-slate-800 mb-2">
+                    <label className="block text-sm font-medium text-slate-800 mb-2">
                         ประวัติการเปิด-ปิดศูนย์ PHEOC (ไฟล์ PDF)
                     </label>
-                    <div className="mt-1 flex justify-center rounded-xl border-2 border-dashed border-slate-300 px-6 py-10 hover:border-emerald-400 hover:bg-emerald-50/10 transition-all cursor-pointer group">
-                        <div className="text-center">
+                    <div className="mt-1 flex justify-center rounded-xl border-2 border-dashed border-slate-300 px-6 py-10 hover:border-emerald-400 hover:bg-emerald-50/10 transition-all cursor-pointer group relative">
+                        <input
+                            id={`${idPrefix}file-upload`}
+                            name="file"
+                            type="file"
+                            accept=".pdf"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            onChange={(e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                    setFilename(file.name);
+                                } else {
+                                    setFilename('');
+                                }
+                            }}
+                        />
+                        <div className="text-center pointer-events-none">
                             <div className="mx-auto h-12 w-12 text-slate-300 group-hover:text-emerald-500 transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                                 </svg>
                             </div>
                             <div className="mt-4 flex text-sm leading-6 text-slate-600 justify-center">
-                                <label htmlFor={`${idPrefix}file-upload`} className="relative cursor-pointer rounded-md font-semibold text-emerald-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-600 focus-within:ring-offset-2 hover:text-emerald-500">
-                                    <span>อัปโหลดไฟล์</span>
-                                    <input id={`${idPrefix}file-upload`} name="file" type="file" accept=".pdf" className="sr-only" />
-                                </label>
+                                <span className="relative rounded-md font-semibold text-emerald-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-600 focus-within:ring-offset-2 hover:text-emerald-500">
+                                    อัปโหลดไฟล์
+                                </span>
                                 <p className="pl-1">หรือลากไฟล์มาวางที่นี่</p>
                             </div>
                             <p className="text-xs leading-5 text-slate-500">รองรับไฟล์ PDF (สูงสุด 10MB)</p>
+
+                            {filename && (
+                                <div className="mt-4 p-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium border border-emerald-200 inline-block">
+                                    ไฟล์ที่เลือก: {filename}
+                                </div>
+                            )}
                         </div>
                     </div>
                     {initialData?.pdfUrl && (
@@ -210,9 +248,7 @@ export default function PheocForm({ initialData, onCancel, onSuccess, idPrefix =
             </div>
 
             <div className="bg-slate-50 px-6 py-4 flex items-center justify-between border-t border-slate-100">
-                {state?.message ? (
-                    <span className="text-sm font-medium text-red-600">{state.message}</span>
-                ) : (<span></span>)}
+                {/* Error message removed as it is now handled by SweetAlert */}
 
                 <button
                     type="submit"
