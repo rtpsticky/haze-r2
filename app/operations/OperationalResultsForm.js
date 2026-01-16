@@ -18,7 +18,7 @@ const customStyles = {
     })
 }
 
-export default function OperationalResultsForm() {
+export default function OperationalResultsForm({ user }) {
     const [isLoading, setIsLoading] = useState(true)
     const [isPending, startTransition] = useTransition()
     const [showSuccess, setShowSuccess] = useState(false)
@@ -89,7 +89,11 @@ export default function OperationalResultsForm() {
                 if (res.success && res.data.location) {
                     const loc = res.data.location
                     setCurrentLocationId(loc.id)
-                    setIsProvinceLocked(true)
+                    if (user?.role === 'ADMIN') {
+                        setIsProvinceLocked(false)
+                    } else {
+                        setIsProvinceLocked(true)
+                    }
 
                     // Helper to set selectors
                     const setSelectors = async () => {

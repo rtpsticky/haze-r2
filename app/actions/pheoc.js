@@ -59,7 +59,6 @@ export async function savePheocReport(prevState, formData) {
 
             await fs.mkdir(uploadDir, { recursive: true })
 
-            // UUID naming
             const extension = file.name.split('.').pop()
             const filename = `${uuidv4()}.${extension}`
             const filepath = path.join(uploadDir, filename)
@@ -67,7 +66,8 @@ export async function savePheocReport(prevState, formData) {
             const buffer = Buffer.from(await file.arrayBuffer())
             await fs.writeFile(filepath, buffer)
 
-            pdfUrl = `/uploads/pheoc/${year}/${month}/${filename}`
+            const basePath = '/haze-input'
+            pdfUrl = `${basePath}/uploads/pheoc/${year}/${month}/${filename}`
         } catch (error) {
             console.error('File upload error:', error)
             return { message: 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์', success: false }

@@ -130,32 +130,52 @@ export async function getCleanRoomHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
+        select: { id: true, locationId: true, role: true }
     })
 
     if (!user) return []
 
-    const history = await prisma.cleanRoomReport.groupBy({
-        by: ['recordDate'],
-        where: { locationId: user.locationId },
-        _sum: {
-            passedStandard: true,
-            targetRoomCount: true,
-            placeCount: true
-        },
+    const where = user.role === 'ADMIN' ? {} : { locationId: user.locationId }
+
+    const data = await prisma.cleanRoomReport.findMany({
+        where,
         orderBy: {
             recordDate: 'desc'
+        },
+        include: {
+            location: true
         }
     })
 
-    return history.map(item => ({
-        recordDate: item.recordDate,
-        totalPassed: item._sum.passedStandard || 0,
-        totalTarget: item._sum.targetRoomCount || 0,
-        totalPlaces: item._sum.placeCount || 0
-    }))
+    // Group by date and location
+    const history = {}
+
+    data.forEach(record => {
+        const dateStr = record.recordDate.toISOString().split('T')[0]
+        const locationKey = record.locationId
+        const key = `${dateStr}-${locationKey}`
+
+        if (!history[key]) {
+            history[key] = {
+                recordDate: record.recordDate, // Keep as Date object or string? Original returned object with recordDate
+                dateStr: dateStr,
+                locationId: record.locationId,
+                locationName: record.location?.districtName || record.location?.provinceName || '',
+                totalPassed: 0,
+                totalTarget: 0,
+                totalPlaces: 0
+            }
+        }
+
+        history[key].totalPassed += (record.passedStandard || 0)
+        history[key].totalTarget += (record.targetRoomCount || 0)
+        history[key].totalPlaces += (record.placeCount || 0)
+    })
+
+    return Object.values(history).sort((a, b) => new Date(b.dateStr) - new Date(a.dateStr))
 }
 
-export async function deleteCleanRoomReport(dateStr) {
+export async function deleteCleanRoomReport(dateStr, targetLocationId) {
     const session = await getSession()
     if (!session) {
         return { success: false, message: 'Unauthorized' }
@@ -163,6 +183,7 @@ export async function deleteCleanRoomReport(dateStr) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
+        select: { id: true, locationId: true, role: true }
     })
 
     if (!user) {
@@ -170,28 +191,19 @@ export async function deleteCleanRoomReport(dateStr) {
     }
 
     try {
-        const targetDate = new Date(dateStr)
-        // Ensure assuming midnight if encoded in dateStr, but safer to query range or ensure exact match logic matches save
-        // The save logic sets hours to 0,0,0,0.
-        // If dateStr is "YYYY-MM-DD", `new Date(dateStr)` treats it as UTC usually?
-        // Wait, `new Date("2023-01-01")` is UTC. `new Date(2023, 0, 1)` is local.
-        // In `saveCleanRoomData`: `const recordDate = new Date(formData.get('recordDate'))` (input type=date returns YYYY-MM-DD)
-        // `recordDate.setHours(0, 0, 0, 0)` -> This sets it to local midnight.
-
-        // So here:
         const date = new Date(dateStr)
-        date.setHours(0, 0, 0, 0) // Should match the saved format if running in same timezone env.
+        date.setHours(0, 0, 0, 0)
 
-        // To be safe against timezone issues, maybe use a range?
-        // But `save` sets it to specific timestamp.
-        // Let's try matching with range covering the whole day just to be safe, or just exact match if we trust the object.
-        // Prisma `DateTime` is UTC.
-        // If `save` uses `setHours(0,0,0,0)` in system time, then saves to DB (converted to UTC).
-        // Let's just use the exact same logic as `save` for constructing the date object.
+        // Determine location to delete
+        let deleteLocationId = user.locationId
+
+        if (targetLocationId && user.role === 'ADMIN') {
+            deleteLocationId = targetLocationId
+        }
 
         await prisma.cleanRoomReport.deleteMany({
             where: {
-                locationId: user.locationId,
+                locationId: deleteLocationId,
                 recordDate: date
             }
         })

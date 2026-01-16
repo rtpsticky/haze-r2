@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { deleteInventoryReport } from '@/app/actions/inventory'
 import EditInventoryModal from './EditInventoryModal'
 
-export default function InventoryHistory({ history }) {
+export default function InventoryHistory({ history, isAdmin }) {
     const [editData, setEditData] = useState(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isDeleting, setIsDeleting] = useState(null)
@@ -14,12 +14,12 @@ export default function InventoryHistory({ history }) {
         setIsEditOpen(true)
     }
 
-    const handleDelete = async (dateStr) => {
+    const handleDelete = async (dateStr, locationId) => {
         if (!confirm('ยืนยันการลบข้อมูลของวันที่นี้? ข้อมูลทั้งหมดของวันนี้จะหายไป')) return
 
         setIsDeleting(dateStr)
         try {
-            const res = await deleteInventoryReport(dateStr)
+            const res = await deleteInventoryReport(dateStr, locationId)
             if (!res.success) {
                 alert(res.message)
             }
@@ -55,6 +55,7 @@ export default function InventoryHistory({ history }) {
                         <thead className="bg-slate-50">
                             <tr>
                                 <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-slate-600">วันที่</th>
+                                {isAdmin && <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-slate-600">หน่วยงาน</th>}
                                 <th scope="col" className="px-6 py-3 text-center text-sm font-semibold text-slate-600">จำนวนรวม (ชิ้น)</th>
                                 <th scope="col" className="px-6 py-3 text-right text-sm font-semibold text-slate-600">จัดการ</th>
                             </tr>
@@ -69,6 +70,11 @@ export default function InventoryHistory({ history }) {
                                             day: 'numeric'
                                         })}
                                     </td>
+                                    {isAdmin && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                            {item.locationName || '-'}
+                                        </td>
+                                    )}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
                                         <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
                                             {item.totalItems.toLocaleString()}
@@ -81,10 +87,10 @@ export default function InventoryHistory({ history }) {
                                                 disabled={isDeleting === item.date}
                                                 className="text-indigo-600 hover:text-indigo-900 px-3 py-1.5 rounded hover:bg-indigo-50 transition-colors disabled:opacity-50"
                                             >
-                                                แก้ไข
+                                                ดู/แก้ไข
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(item.date)}
+                                                onClick={() => handleDelete(item.date, item.locationId)}
                                                 disabled={isDeleting === item.date}
                                                 className="text-red-600 hover:text-red-900 px-3 py-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
                                             >

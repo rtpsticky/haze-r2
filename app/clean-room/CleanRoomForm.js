@@ -131,7 +131,7 @@ export default function CleanRoomForm({ user }) {
         }
     }
 
-    const handleDelete = async (recordDate) => {
+    const handleDelete = async (recordDate, locationId) => {
         if (!confirm('ยืนยันการลบข้อมูลนี้?')) return
         const d = new Date(recordDate)
         const year = d.getFullYear()
@@ -140,7 +140,7 @@ export default function CleanRoomForm({ user }) {
         const dateStr = `${year}-${month}-${day}`
 
         try {
-            const res = await deleteCleanRoomReport(dateStr)
+            const res = await deleteCleanRoomReport(dateStr, locationId)
             if (res.success) {
                 fetchHistory()
                 if (date === dateStr) {
@@ -241,6 +241,7 @@ export default function CleanRoomForm({ user }) {
                                 <thead className="bg-slate-50">
                                     <tr>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
+                                        {user?.role === 'ADMIN' && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">จำนวนสถานที่</th>
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">เป้าหมาย (ห้อง)</th>
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">ผ่านมาตรฐาน (ห้อง)</th>
@@ -264,14 +265,21 @@ export default function CleanRoomForm({ user }) {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                                                     {new Date(record.recordDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                                 </td>
+                                                {user?.role === 'ADMIN' && (
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                        {record.locationName || '-'}
+                                                    </td>
+                                                )}
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalPlaces}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalTarget}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center hover:font-bold hover:text-emerald-600 transition-colors cursor-default">
                                                     {record.totalPassed}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    <button onClick={() => handleEdit(record)} className="text-emerald-600 hover:text-emerald-900 mr-4">แก้ไข</button>
-                                                    <button onClick={() => handleDelete(record.recordDate)} className="text-red-600 hover:text-red-900">ลบ</button>
+                                                    {(user?.role !== 'ADMIN' || user?.locationId === record.locationId) && (
+                                                        <button onClick={() => handleEdit(record)} className="text-emerald-600 hover:text-emerald-900 mr-4">แก้ไข</button>
+                                                    )}
+                                                    <button onClick={() => handleDelete(record.recordDate, record.locationId)} className="text-red-600 hover:text-red-900">ลบ</button>
                                                 </td>
                                             </tr>
                                         ))

@@ -19,7 +19,7 @@ const customStyles = {
     })
 }
 
-export default function IncidentsForm() {
+export default function IncidentsForm({ user }) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0])
     const [isLoading, setIsLoading] = useState(true)
     const [isPending, startTransition] = useTransition()
@@ -64,7 +64,11 @@ export default function IncidentsForm() {
                 if (res.success && res.data.location) {
                     const loc = res.data.location
                     setCurrentLocationId(loc.id)
-                    setIsProvinceLocked(true)
+                    if (user?.role === 'ADMIN') {
+                        setIsProvinceLocked(false)
+                    } else {
+                        setIsProvinceLocked(true)
+                    }
 
                     // Helper to sync selectors
                     const setSelectors = async () => {

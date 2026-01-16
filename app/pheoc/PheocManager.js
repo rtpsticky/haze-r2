@@ -4,7 +4,7 @@ import PheocForm from './PheocForm'
 import PheocHistory from './PheocHistory'
 import Modal from './Modal'
 
-export default function PheocManager({ reports }) {
+export default function PheocManager({ reports, isAdmin }) {
     const [editingReport, setEditingReport] = useState(null)
 
     const handleEdit = (report) => {
@@ -31,6 +31,7 @@ export default function PheocManager({ reports }) {
             <PheocHistory
                 reports={reports}
                 onEdit={handleEdit}
+                isAdmin={isAdmin}
             />
 
             {/* Edit Modal */}

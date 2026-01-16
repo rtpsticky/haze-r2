@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { deleteVulnerableReport } from '@/app/actions/vulnerable'
 import EditVulnerableModal from './EditVulnerableModal'
 
-export default function VulnerableHistory({ history }) {
+export default function VulnerableHistory({ history, isAdmin }) {
     const [editData, setEditData] = useState(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isDeleting, setIsDeleting] = useState(null)
@@ -14,12 +14,13 @@ export default function VulnerableHistory({ history }) {
         setIsEditOpen(true)
     }
 
-    const handleDelete = async (dateStr) => {
+    const handleDelete = async (dateStr, locationId) => {
         if (!confirm('ยืนยันการลบข้อมูลของวันที่นี้? ข้อมูลทั้งหมดของวันนี้จะหายไป')) return
 
         setIsDeleting(dateStr)
         try {
-            const res = await deleteVulnerableReport(dateStr)
+            // Pass locationId if it exists (for admin)
+            const res = await deleteVulnerableReport(dateStr, locationId)
             if (!res.success) {
                 alert(res.message)
             }
@@ -55,6 +56,7 @@ export default function VulnerableHistory({ history }) {
                         <thead className="bg-slate-50">
                             <tr>
                                 <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-slate-600">วันที่</th>
+                                {isAdmin && <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-slate-600">หน่วยงาน</th>}
                                 <th scope="col" className="px-6 py-3 text-center text-sm font-semibold text-slate-600">จำนวนรวม (คน)</th>
                                 <th scope="col" className="px-6 py-3 text-right text-sm font-semibold text-slate-600">จัดการ</th>
                             </tr>
@@ -69,6 +71,11 @@ export default function VulnerableHistory({ history }) {
                                             day: 'numeric'
                                         })}
                                     </td>
+                                    {isAdmin && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                            {item.locationName || '-'}
+                                        </td>
+                                    )}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
                                         <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
                                             {item.totalCount.toLocaleString()}
@@ -79,12 +86,15 @@ export default function VulnerableHistory({ history }) {
                                             <button
                                                 onClick={() => handleEdit(item.date, item.records)}
                                                 disabled={isDeleting === item.date}
+                                                // Disable edit for admin if not clear ownership, or just allow view. 
+                                                // Assuming admin usually just views history here. 
+                                                // But let's keep it enabled if they want to view details.
                                                 className="text-indigo-600 hover:text-indigo-900 px-3 py-1.5 rounded hover:bg-indigo-50 transition-colors disabled:opacity-50"
                                             >
-                                                แก้ไข
+                                                ดู/แก้ไข
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(item.date)}
+                                                onClick={() => handleDelete(item.date, item.locationId)}
                                                 disabled={isDeleting === item.date}
                                                 className="text-red-600 hover:text-red-900 px-3 py-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
                                             >

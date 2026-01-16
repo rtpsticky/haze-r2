@@ -1,7 +1,24 @@
 import ProactiveCareForm from './ProactiveCareForm'
 import Link from 'next/link'
+import { getSession } from '@/lib/auth'
+import prisma from '@/lib/prisma'
+import { redirect } from 'next/navigation'
 
-export default function ProactiveCarePage() {
+async function getUser(userId) {
+    return await prisma.user.findUnique({
+        where: { id: userId },
+        include: { location: true },
+    })
+}
+
+export default async function ProactiveCarePage() {
+    const session = await getSession()
+    if (!session) {
+        redirect('/login')
+    }
+
+    const user = await getUser(session.userId)
+
     return (
         <div className="min-h-screen bg-slate-50 py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,7 +36,7 @@ export default function ProactiveCarePage() {
 
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                     <div className="p-6">
-                        <ProactiveCareForm />
+                        <ProactiveCareForm user={user} />
                     </div>
                 </div>
             </div>

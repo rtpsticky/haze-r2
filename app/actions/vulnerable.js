@@ -113,43 +113,53 @@ export async function getVulnerableHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
+        select: { id: true, locationId: true, role: true }
     })
 
     if (!user) return []
 
+    const where = user.role === 'ADMIN' ? {} : { locationId: user.locationId }
+
     const data = await prisma.vulnerableData.findMany({
-        where: {
-            locationId: user.locationId,
-        },
+        where,
         orderBy: {
             recordDate: 'desc',
         },
+        include: {
+            location: true
+        }
     })
 
-    // Group by date
+    // Group by date and location
     const history = {}
     data.forEach(record => {
         const dateStr = record.recordDate.toISOString().split('T')[0]
-        if (!history[dateStr]) {
-            history[dateStr] = {
+        const locationKey = record.locationId
+        const key = `${dateStr}-${locationKey}`
+
+        if (!history[key]) {
+            history[key] = {
                 date: dateStr,
+                locationId: record.locationId,
+                locationName: record.location?.districtName || record.location?.provinceName || '',
                 totalCount: 0,
                 records: []
             }
         }
-        history[dateStr].totalCount += record.targetCount
-        history[dateStr].records.push(record)
+        history[key].totalCount += record.targetCount
+        history[key].records.push(record)
     })
 
     return Object.values(history).sort((a, b) => new Date(b.date) - new Date(a.date))
 }
 
-export async function deleteVulnerableReport(dateStr) {
+export async function deleteVulnerableReport(dateStr, targetLocationId) {
     const session = await getSession()
     if (!session) return { success: false, message: 'Unauthorized' }
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
+        select: { id: true, locationId: true, role: true }
     })
 
     if (!user) return { success: false, message: 'User not found' }
@@ -160,10 +170,17 @@ export async function deleteVulnerableReport(dateStr) {
     const endOfDay = new Date(targetDate)
     endOfDay.setHours(23, 59, 59, 999)
 
+    // Determine location to delete
+    let deleteLocationId = user.locationId
+
+    if (targetLocationId && user.role === 'ADMIN') {
+        deleteLocationId = targetLocationId
+    }
+
     try {
         await prisma.vulnerableData.deleteMany({
             where: {
-                locationId: user.locationId,
+                locationId: deleteLocationId,
                 recordDate: {
                     gte: startOfDay,
                     lte: endOfDay

@@ -10,13 +10,19 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
 
     let locationIdToUse = requestedLocationId
 
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { locationId: true, role: true }
+    })
+
     // If no specific location requested, default to user's home location
     if (!locationIdToUse) {
-        const user = await prisma.user.findUnique({
-            where: { id: session.userId },
-            select: { locationId: true }
-        })
         if (user) locationIdToUse = user.locationId
+    } else {
+        // Permission Check
+        if (user?.role !== 'ADMIN' && parseInt(locationIdToUse) !== user.locationId) {
+            return { success: false, error: 'Unauthorized location access' }
+        }
     }
 
     if (!locationIdToUse) return { success: false, error: 'Location not determined' }
@@ -70,6 +76,16 @@ export async function saveIncident(prevState, formData) {
         return { success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' }
     }
 
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { locationId: true, role: true }
+    })
+
+    // Permission Check
+    if (user.role !== 'ADMIN' && locationId !== user.locationId) {
+        return { success: false, message: 'Unauthorized location save' }
+    }
+
     try {
         await prisma.staffIncident.create({
             data: {
@@ -102,6 +118,20 @@ export async function updateIncident(prevState, formData) {
         return { success: false, message: 'ข้อมูลไม่ครบถ้วน' }
     }
 
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { locationId: true, role: true }
+    })
+
+    // Verify existing incident
+    const existing = await prisma.staffIncident.findUnique({ where: { id } })
+    if (!existing) return { success: false, message: 'Incident not found' }
+
+    // Permission Check
+    if (user.role !== 'ADMIN' && existing.locationId !== user.locationId) {
+        return { success: false, message: 'Unauthorized update' }
+    }
+
     try {
         await prisma.staffIncident.update({
             where: { id },
@@ -123,6 +153,20 @@ export async function updateIncident(prevState, formData) {
 export async function deleteIncident(id) {
     const session = await getSession()
     if (!session) return { success: false, message: 'Unauthorized' }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { locationId: true, role: true }
+    })
+
+    // Verify existing incident
+    const existing = await prisma.staffIncident.findUnique({ where: { id } })
+    if (!existing) return { success: false, message: 'Incident not found' }
+
+    // Permission Check
+    if (user.role !== 'ADMIN' && existing.locationId !== user.locationId) {
+        return { success: false, message: 'Unauthorized delete' }
+    }
 
     try {
         await prisma.staffIncident.delete({

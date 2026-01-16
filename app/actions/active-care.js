@@ -12,14 +12,20 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
     // but for now we trust the ID or rely on the fact that any logged-in user can view any location)
     // If NOT requested, default to user's assigned location.
 
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { locationId: true, role: true }
+    })
+
     let locationIdToUse = requestedLocationId
 
     if (!locationIdToUse) {
-        const user = await prisma.user.findUnique({
-            where: { id: session.userId },
-            select: { locationId: true }
-        })
         if (user) locationIdToUse = user.locationId
+    } else {
+        // Enforce permission for requested location
+        if (user?.role !== 'ADMIN' && parseInt(locationIdToUse) !== user.locationId) {
+            return { success: false, error: 'Unauthorized location access' }
+        }
     }
 
     if (!locationIdToUse) return { success: false, error: 'Location not determined' }
@@ -68,7 +74,18 @@ export async function getActiveCareHistory(locationId) {
 
     if (!locationId) return { success: true, data: [] }
 
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { locationId: true, role: true }
+    })
+    if (!user) return { success: false, error: 'User not found' }
+
     const id = parseInt(locationId)
+
+    // Permission Check
+    if (user.role !== 'ADMIN' && id !== user.locationId) {
+        return { success: false, error: 'Unauthorized location access' }
+    }
 
     // Fetch distinct dates from active care logs and local admin support
     const [activeDates, supportDates] = await Promise.all([
@@ -101,8 +118,19 @@ export async function deleteActiveCareData(dateString, locationId) {
 
     if (!dateString || !locationId) return { success: false, message: 'Invalid arguments' }
 
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { locationId: true, role: true }
+    })
+    if (!user) return { success: false, message: 'User not found' }
+
     const date = new Date(dateString)
     const id = parseInt(locationId)
+
+    // Permission Check
+    if (user.role !== 'ADMIN' && id !== user.locationId) {
+        return { success: false, message: 'Unauthorized location delete' }
+    }
 
     try {
         await prisma.$transaction(async (tx) => {

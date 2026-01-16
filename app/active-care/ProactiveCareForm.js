@@ -24,7 +24,7 @@ const customStyles = {
     })
 }
 
-export default function ProactiveCareForm() {
+export default function ProactiveCareForm({ user }) {
     const [isLoading, setIsLoading] = useState(true)
     const [isPending, startTransition] = useTransition()
     const [showSuccess, setShowSuccess] = useState(false)
@@ -77,7 +77,11 @@ export default function ProactiveCareForm() {
                 if (res.success && res.data.location) {
                     const loc = res.data.location
                     setCurrentLocationId(loc.id)
-                    setIsProvinceLocked(true)
+                    if (user?.role === 'ADMIN') {
+                        setIsProvinceLocked(false)
+                    } else {
+                        setIsProvinceLocked(true)
+                    }
 
                     const setSelectors = async () => {
                         const provOpt = { value: loc.provinceName, label: loc.provinceName }

@@ -12,7 +12,7 @@ export default async function PheocPage() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true }
+        select: { locationId: true, role: true }
     })
 
     if (!user) {
@@ -20,9 +20,14 @@ export default async function PheocPage() {
     }
 
     // Fetch history
+    const where = user.role === 'ADMIN' ? {} : { locationId: user.locationId }
+
     const reports = await prisma.pheocReport.findMany({
-        where: { locationId: user.locationId },
+        where,
         orderBy: { reportDate: 'desc' },
+        include: {
+            location: true
+        },
         take: 50 // Limit to last 50 reports
     })
 
@@ -41,7 +46,7 @@ export default async function PheocPage() {
                     </div>
                 </div>
 
-                <PheocManager reports={reports} />
+                <PheocManager reports={reports} isAdmin={user.role === 'ADMIN'} />
             </div>
         </div>
     )

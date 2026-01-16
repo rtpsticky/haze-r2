@@ -104,47 +104,53 @@ export async function getInventoryHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
+        select: { id: true, locationId: true, role: true }
     })
 
     if (!user) return []
 
+    const where = user.role === 'ADMIN' ? {} : { locationId: user.locationId }
+
     const data = await prisma.inventoryLog.findMany({
-        where: {
-            locationId: user.locationId,
-        },
+        where,
         orderBy: {
             recordDate: 'desc',
         },
+        include: {
+            location: true
+        }
     })
 
-    // Group by date
+    // Group by date and location
     const history = {}
     data.forEach(record => {
         const dateStr = record.recordDate.toISOString().split('T')[0]
-        if (!history[dateStr]) {
-            history[dateStr] = {
+        const locationKey = record.locationId
+        const key = `${dateStr}-${locationKey}`
+
+        if (!history[key]) {
+            history[key] = {
                 date: dateStr,
+                locationId: record.locationId,
+                locationName: record.location?.districtName || record.location?.provinceName || '',
                 totalItems: 0,
                 records: []
             }
         }
-        // Count distinct items or sum stock? 
-        // Let's sum stock count for a rough "total items" metric, or just count records.
-        // Summing stock count might be weird if units differ (but here it's mostly 'pieces').
-        // Let's just sum stockCount.
-        history[dateStr].totalItems += record.stockCount
-        history[dateStr].records.push(record)
+        history[key].totalItems += record.stockCount
+        history[key].records.push(record)
     })
 
     return Object.values(history).sort((a, b) => new Date(b.date) - new Date(a.date))
 }
 
-export async function deleteInventoryReport(dateStr) {
+export async function deleteInventoryReport(dateStr, targetLocationId) {
     const session = await getSession()
     if (!session) return { success: false, message: 'Unauthorized' }
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
+        select: { id: true, locationId: true, role: true }
     })
 
     if (!user) return { success: false, message: 'User not found' }
@@ -155,10 +161,17 @@ export async function deleteInventoryReport(dateStr) {
     const endOfDay = new Date(targetDate)
     endOfDay.setHours(23, 59, 59, 999)
 
+    // Determine location to delete
+    let deleteLocationId = user.locationId
+
+    if (targetLocationId && user.role === 'ADMIN') {
+        deleteLocationId = targetLocationId
+    }
+
     try {
         await prisma.inventoryLog.deleteMany({
             where: {
-                locationId: user.locationId,
+                locationId: deleteLocationId,
                 recordDate: {
                     gte: startOfDay,
                     lte: endOfDay

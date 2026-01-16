@@ -4,7 +4,7 @@ import { deletePheocReport } from "@/app/actions/pheoc"
 import { useTransition } from "react"
 import Swal from 'sweetalert2'
 
-export default function PheocHistory({ reports, onEdit }) {
+export default function PheocHistory({ reports, onEdit, isAdmin }) {
     const [isPending, startTransition] = useTransition()
 
     const handleDelete = async (id) => {
@@ -56,6 +56,7 @@ export default function PheocHistory({ reports, onEdit }) {
                         <thead className="bg-slate-50">
                             <tr>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
+                                {isAdmin && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">สถานะ</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ระดับตอบโต้</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ไฟล์แนบ</th>
@@ -68,6 +69,11 @@ export default function PheocHistory({ reports, onEdit }) {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                         {new Date(report.reportDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                     </td>
+                                    {isAdmin && (
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                            {report.location?.districtName || '-'}
+                                        </td>
+                                    )}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
                                             ${report.status === 'เปิด PHEOC' ? 'bg-amber-100 text-amber-800' :
@@ -81,7 +87,11 @@ export default function PheocHistory({ reports, onEdit }) {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                         {report.pdfUrl ? (
-                                            <a href={report.pdfUrl} target="_blank" className="text-emerald-600 hover:text-emerald-800 underline">
+                                            <a
+                                                href={report.pdfUrl.startsWith('/haze-input') ? report.pdfUrl : `/haze-input${report.pdfUrl}`}
+                                                target="_blank"
+                                                className="text-emerald-600 hover:text-emerald-800 underline"
+                                            >
                                                 ดูไฟล์
                                             </a>
                                         ) : '-'}
