@@ -19,6 +19,10 @@ export async function saveMeasures(prevState, formData) {
         return { message: 'User not found' }
     }
 
+    if (user.role !== 'SSJ' && user.role !== 'ADMIN') {
+        return { message: 'ไม่มีสิทธิ์เข้าถึง (Unauthorized)' }
+    }
+
     const measureIds = [
         '1.1', '1.2',
         '2.1', '2.2',

@@ -75,7 +75,7 @@ export default function InventoryForm({ user }) {
                         </svg>
                     </Link>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-800">เวชภัณฑ์คงคลัง</h1>
+                        <h1 className="text-2xl font-bold text-slate-800">เวชภัณฑ์คงคลัง ณ วันที่รายงาน</h1>
                         <p className="text-slate-500 text-sm">
                             {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
                         </p>

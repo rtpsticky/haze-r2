@@ -1,11 +1,11 @@
 'use client'
 
 export const items = [
-    { key: 'surgical_mask', label: 'หน้ากาก Surgical Mask (ชิ้น) (รายวัน)' },
-    { key: 'n95', label: 'หน้ากาก N95 (ชิ้น) (รายวัน)' },
-    { key: 'carbon_mask', label: 'หน้ากากคาร์บอน' },
-    { key: 'cloth_mask', label: 'หน้ากากผ้า' },
-    { key: 'dust_net', label: 'มุ้งสู้ฝุ่น' },
+    { key: 'surgical_mask', label: 'หน้ากาก Surgical Mask (ชิ้น)' },
+    { key: 'n95', label: 'หน้ากาก N95 (ชิ้น)' },
+    { key: 'carbon_mask', label: 'หน้ากากคาร์บอน (ชิ้น)' },
+    { key: 'cloth_mask', label: 'หน้ากากผ้า (ชิ้น)' },
+    { key: 'dust_net', label: 'มุ้งสู้ฝุ่น (หลัง)' },
 ]
 
 export default function InventoryInputs({ counts, onChange, disabled = false }) {

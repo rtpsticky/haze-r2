@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { deleteVulnerableReport } from '@/app/actions/vulnerable'
 import EditVulnerableModal from './EditVulnerableModal'
 
-export default function VulnerableHistory({ history, isAdmin }) {
+export default function VulnerableHistory({ history, isAdmin, userRole }) {
     const [editData, setEditData] = useState(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isDeleting, setIsDeleting] = useState(null)

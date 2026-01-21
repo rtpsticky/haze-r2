@@ -32,12 +32,16 @@ export default async function MeasuresPage() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true }
+        select: { locationId: true, role: true }
     })
 
     if (!user) {
         // Handle edge case where user is in session but not found in DB
         redirect('/login')
+    }
+
+    if (user.role !== 'SSJ' && user.role !== 'ADMIN') {
+        redirect('/')
     }
 
     const existingData = await getTodayMeasures(user.locationId);
