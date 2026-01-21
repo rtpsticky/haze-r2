@@ -142,20 +142,48 @@ export default function RegisterPage() {
                             <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1">
                                 ชื่อผู้ใช้
                             </label>
-                            <input type="text" id="username" name="username" required className="block w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm sm:leading-6 transition-shadow" placeholder="ตั้งชื่อผู้ใช้" />
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                required
+                                pattern="[a-zA-Z0-9._-]+"
+                                title="ภาษาอังกฤษ ตัวเลข . _ - เท่านั้น"
+                                className="block w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm sm:leading-6 transition-shadow"
+                                placeholder="ตั้งชื่อผู้ใช้ (ภาษาอังกฤษเท่านั้น)"
+                            />
+                            <p className="mt-1 text-xs text-slate-500">อนุญาตเฉพาะภาษาอังกฤษ ตัวเลข และเครื่องหมาย . _ -</p>
                         </div>
 
                         <div>
                             <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
                                 รหัสผ่าน
                             </label>
-                            <input type="password" id="password" name="password" required className="block w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm sm:leading-6 transition-shadow" placeholder="ตั้งรหัสผ่าน" />
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                required
+                                pattern="[a-zA-Z0-9]+"
+                                title="ภาษาอังกฤษและตัวเลขเท่านั้น"
+                                className="block w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm sm:leading-6 transition-shadow"
+                                placeholder="ตั้งรหัสผ่าน (ภาษาอังกฤษและตัวเลข)"
+                            />
+                            <p className="mt-1 text-xs text-slate-500">ภาษาอังกฤษและตัวเลขเท่านั้น (ห้ามใช้อักขระพิเศษ)</p>
                         </div>
                         <div>
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-1">
                                 ยืนยันรหัสผ่าน
                             </label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" required className="block w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm sm:leading-6 transition-shadow" placeholder="ยืนยันรหัสผ่านอีกครั้ง" />
+                            <input
+                                type="password"
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                required
+                                pattern="[a-zA-Z0-9]+"
+                                className="block w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm sm:leading-6 transition-shadow"
+                                placeholder="ยืนยันรหัสผ่านอีกครั้ง"
+                            />
                         </div>
                     </div>
                 </div>

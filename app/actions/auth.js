@@ -61,6 +61,16 @@ export async function register(prevState, formData) {
         return { message: 'รหัสผ่านไม่ตรงกัน' }
     }
 
+    const usernameRegex = /^[a-zA-Z0-9._-]+$/
+    if (!usernameRegex.test(username)) {
+        return { message: 'ชื่อผู้ใช้ต้องเป็นภาษาอังกฤษ ตัวเลข หรือ . _ - เท่านั้น' }
+    }
+
+    const passwordRegex = /^[a-zA-Z0-9]+$/
+    if (!passwordRegex.test(password)) {
+        return { message: 'รหัสผ่านต้องเป็นภาษาอังกฤษและตัวเลขเท่านั้น (ห้ามใช้อักขระพิเศษ)' }
+    }
+
     const existingUser = await prisma.user.findUnique({
         where: { username },
     })
