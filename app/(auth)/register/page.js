@@ -121,7 +121,7 @@ export default function RegisterPage() {
 
                         {/* Location Selectors */}
                         <div className="col-span-1 sm:col-span-2 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <p className="text-sm font-medium text-slate-700 mb-2 border-b border-slate-200 pb-2">เลือกพื้นที่ปฏิบัติงาน <span className="text-emerald-600 text-xs font-normal">(เลือกวันจังหวัดเป็นอย่างน้อย)</span></p>
+                            <p className="text-sm font-medium text-slate-700 mb-2 border-b border-slate-200 pb-2">เลือกพื้นที่ปฏิบัติงาน <span className="text-emerald-600 text-xs font-normal">(เลือกจังหวัดเป็นอย่างน้อย)</span></p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
                                     <label className="block text-xs font-medium text-slate-500 mb-1">จังหวัด <span className="text-red-500">*</span></label>
