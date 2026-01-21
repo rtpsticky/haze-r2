@@ -59,9 +59,9 @@ export default async function Home() {
         <div className="space-y-10">
           {/* Section 1: Measures & PHEOC */}
           <section>
-            <h3 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
+            <h3 className="text-2xl font-semibold text-slate-700 mb-4 flex items-center gap-2">
               <span className="h-6 w-1 bg-emerald-500 rounded-full"></span>
-              มาตรการและการจัดการ
+              1. มาตรการและการจัดการ
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <DashboardCard
@@ -81,9 +81,9 @@ export default async function Home() {
 
           {/* Section 2: Vulnerable Groups */}
           <section>
-            <h3 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
+            <h3 className="text-2xl font-semibold text-slate-700 mb-4 flex items-center gap-2">
               <span className="h-6 w-1 bg-amber-500 rounded-full"></span>
-              กลุ่มเปราะบาง
+              2. กลุ่มเปราะบาง
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <DashboardCard
@@ -97,9 +97,9 @@ export default async function Home() {
 
           {/* Section 3: Resources */}
           <section>
-            <h3 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
+            <h3 className="text-2xl font-semibold text-slate-700 mb-4 flex items-center gap-2">
               <span className="h-6 w-1 bg-blue-500 rounded-full"></span>
-              ทรัพยากรและสถานที่
+              3. ทรัพยากรและสถานที่
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <DashboardCard
@@ -119,9 +119,9 @@ export default async function Home() {
 
           {/* Section 4: Operations */}
           <section>
-            <h3 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
+            <h3 className="text-2xl font-semibold text-slate-700 mb-4 flex items-center gap-2">
               <span className="h-6 w-1 bg-purple-500 rounded-full"></span>
-              การดำเนินงาน
+              4. การดำเนินงาน
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <DashboardCard
