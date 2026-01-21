@@ -11,7 +11,47 @@ export async function register(prevState, formData) {
     const confirmPassword = formData.get('confirmPassword')
     const orgName = formData.get('orgName')
 
-    const locationId = formData.get('locationId')
+    let locationId = formData.get('locationId')
+    const provinceName = formData.get('provinceName')
+    const districtName = formData.get('districtName')
+
+    // Handle case where locationId is missing but province is selected (Partial Location)
+    if (!locationId && provinceName) {
+        // Construct search/create criteria for placeholder location
+        // Schema requires both districtName and subDistrict (nullable or string)
+        // If districtName is provided but user stopped there: subDistrict = '-'
+        // If only provinceName provided: districtName = '-', subDistrict = '-'
+
+        const targetDistrict = districtName || '-'
+        const targetSubDistrict = '-'
+
+        try {
+            // Find existing placeholder location
+            let placeholderLoc = await prisma.location.findFirst({
+                where: {
+                    provinceName: provinceName,
+                    districtName: targetDistrict,
+                    subDistrict: targetSubDistrict
+                }
+            })
+
+            // If not found, create it
+            if (!placeholderLoc) {
+                placeholderLoc = await prisma.location.create({
+                    data: {
+                        provinceName: provinceName,
+                        districtName: targetDistrict,
+                        subDistrict: targetSubDistrict
+                    }
+                })
+            }
+
+            locationId = placeholderLoc.id
+        } catch (err) {
+            console.error('Error handling placeholder location:', err)
+            return { message: 'เกิดข้อผิดพลาดในการระบุสถานที่' }
+        }
+    }
 
     if (!name || !username || !password || !orgName || !locationId) {
         return { message: 'กรุณากรอกข้อมูลให้ครบถ้วน' }

@@ -19,7 +19,10 @@ export async function getProvinces() {
 export async function getDistricts(provinceName) {
     try {
         const districts = await prisma.location.findMany({
-            where: { provinceName },
+            where: {
+                provinceName,
+                districtName: { not: '-' } // Exclude placeholder
+            },
             distinct: ['districtName'],
             select: { districtName: true },
             orderBy: { districtName: 'asc' }
@@ -34,7 +37,11 @@ export async function getDistricts(provinceName) {
 export async function getSubDistricts(provinceName, districtName) {
     try {
         const subDistricts = await prisma.location.findMany({
-            where: { provinceName, districtName },
+            where: {
+                provinceName,
+                districtName,
+                subDistrict: { not: '-' } // Exclude placeholder
+            },
             distinct: ['subDistrict'],
             select: { id: true, subDistrict: true },
             orderBy: { subDistrict: 'asc' }

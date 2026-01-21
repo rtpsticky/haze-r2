@@ -99,8 +99,10 @@ export default function RegisterPage() {
             </div>
 
             <form className="space-y-4" action={formAction}>
-                {/* Hidden input to pass locationId to server action */}
+                {/* Hidden input to pass location data to server action */}
                 <input type="hidden" name="locationId" value={currentLocationId} />
+                <input type="hidden" name="provinceName" value={selectedProvince?.value || ''} />
+                <input type="hidden" name="districtName" value={selectedDistrict?.value || ''} />
 
                 <div className="space-y-3">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -119,19 +121,19 @@ export default function RegisterPage() {
 
                         {/* Location Selectors */}
                         <div className="col-span-1 sm:col-span-2 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <p className="text-sm font-medium text-slate-700 mb-2 border-b border-slate-200 pb-2">เลือกพื้นที่ปฏิบัติงาน</p>
+                            <p className="text-sm font-medium text-slate-700 mb-2 border-b border-slate-200 pb-2">เลือกพื้นที่ปฏิบัติงาน <span className="text-emerald-600 text-xs font-normal">(เลือกวันจังหวัดเป็นอย่างน้อย)</span></p>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-500 mb-1">จังหวัด</label>
+                                    <label className="block text-xs font-medium text-slate-500 mb-1">จังหวัด <span className="text-red-500">*</span></label>
                                     <Select placeholder="เลือก..." options={provinces} value={selectedProvince} onChange={handleProvinceChange} styles={customStyles} isClearable required />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-slate-500 mb-1">อำเภอ</label>
-                                    <Select placeholder="เลือก..." options={districts} value={selectedDistrict} onChange={handleDistrictChange} isDisabled={!selectedProvince} styles={customStyles} isClearable required />
+                                    <Select placeholder="เลือก..." options={districts} value={selectedDistrict} onChange={handleDistrictChange} isDisabled={!selectedProvince} styles={customStyles} isClearable />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-slate-500 mb-1">ตำบล</label>
-                                    <Select placeholder="เลือก..." options={subDistricts} value={selectedSubDistrict} onChange={handleSubDistrictChange} isDisabled={!selectedDistrict} styles={customStyles} isClearable required />
+                                    <Select placeholder="เลือก..." options={subDistricts} value={selectedSubDistrict} onChange={handleSubDistrictChange} isDisabled={!selectedDistrict} styles={customStyles} isClearable />
                                 </div>
                             </div>
                         </div>
@@ -167,7 +169,7 @@ export default function RegisterPage() {
                 <div className="pt-2">
                     <button
                         type="submit"
-                        disabled={isPending || !currentLocationId}
+                        disabled={isPending || !selectedProvince}
                         className="flex w-full justify-center rounded-lg bg-emerald-600 py-2.5 px-4 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                         {isPending ? (
