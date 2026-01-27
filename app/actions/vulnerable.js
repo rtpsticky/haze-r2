@@ -53,6 +53,11 @@ export async function saveVulnerableData(prevState, formData) {
         return { message: 'User not found', success: false }
     }
 
+    // Only SSO (and ADMIN for override) can save this data
+    if (user.role !== 'SSO' && user.role !== 'ADMIN') {
+        return { message: 'สิทธิ์การบันทึกข้อมูลสำหรับ สสอ. เท่านั้น', success: false }
+    }
+
     const recordDate = new Date(formData.get('recordDate'))
 
     // Normalize date to 00:00:00 for consistency in querying "by date"

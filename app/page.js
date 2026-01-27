@@ -64,8 +64,8 @@ export default async function Home() {
               1. มาตรการและการจัดการ
             </h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {/* 1.1 Record Measures - Only for SSJ (Province) and ADMIN */}
-              {(user?.role === 'SSJ' || user?.role === 'ADMIN') && (
+              {/* 1.1 Record Measures - For SSJ, HEALTH_REGION and ADMIN */}
+              {(user?.role === 'SSJ' || user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && (
                 <DashboardCard
                   title="บันทึกมาตรการ"
                   description="ติดตามสถานะมาตรการ 1.1 - 4.2"
@@ -148,8 +148,8 @@ export default async function Home() {
             </div>
           </section>
 
-          {/* Section 5: Admin */}
-          {user?.role === 'ADMIN' && (
+          {/* Section 5: Admin & Health Region */}
+          {(user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && (
             <section>
               <h3 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
                 <span className="h-6 w-1 bg-slate-800 rounded-full"></span>

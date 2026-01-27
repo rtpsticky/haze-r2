@@ -19,7 +19,7 @@ export async function saveMeasures(prevState, formData) {
         return { message: 'User not found' }
     }
 
-    if (user.role !== 'SSJ' && user.role !== 'ADMIN') {
+    if (user.role !== 'SSJ' && user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
         return { message: 'ไม่มีสิทธิ์เข้าถึง (Unauthorized)' }
     }
 

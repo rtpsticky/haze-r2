@@ -39,6 +39,15 @@ export default function RegisterPage() {
     const [provinces, setProvinces] = useState([])
     const [districts, setDistricts] = useState([])
     const [subDistricts, setSubDistricts] = useState([])
+    const [selectedRole, setSelectedRole] = useState(null)
+
+    const roles = [
+        { value: 'HEALTH_REGION', label: 'เขตสุขภาพ' },
+        { value: 'SSJ', label: 'สสจ.' },
+        { value: 'SSO', label: 'สสอ.' },
+        { value: 'HOSPITAL', label: 'รพ.' },
+        { value: 'PCU', label: 'รพ.สต.' }
+    ]
 
     const [selectedProvince, setSelectedProvince] = useState(null)
     const [selectedDistrict, setSelectedDistrict] = useState(null)
@@ -103,6 +112,7 @@ export default function RegisterPage() {
                 <input type="hidden" name="locationId" value={currentLocationId} />
                 <input type="hidden" name="provinceName" value={selectedProvince?.value || ''} />
                 <input type="hidden" name="districtName" value={selectedDistrict?.value || ''} />
+                <input type="hidden" name="role" value={selectedRole?.value || ''} />
 
                 <div className="space-y-3">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -113,8 +123,23 @@ export default function RegisterPage() {
                             <input type="text" id="name" name="name" required className="block w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm sm:leading-6 transition-shadow" placeholder="กรอกชื่อ-นามสกุล" />
                         </div>
                         <div className="col-span-1 sm:col-span-2">
+                            <label htmlFor="role" className="block text-sm font-medium text-slate-700 mb-1">
+                                ประเภทหน่วยงาน
+                            </label>
+                            <Select
+                                placeholder="เลือกประเภทหน่วยงาน..."
+                                options={roles}
+                                value={selectedRole}
+                                onChange={setSelectedRole}
+                                styles={customStyles}
+                                isClearable
+                                required
+                                instanceId="role-select"
+                            />
+                        </div>
+                        <div className="col-span-1 sm:col-span-2">
                             <label htmlFor="orgName" className="block text-sm font-medium text-slate-700 mb-1">
-                                หน่วยงาน
+                                ชื่อหน่วยงาน
                             </label>
                             <input type="text" id="orgName" name="orgName" required className="block w-full rounded-lg border border-slate-300 py-2.5 px-3 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 focus:border-emerald-600 sm:text-sm sm:leading-6 transition-shadow" placeholder="กรอกชื่อหน่วยงาน" />
                         </div>

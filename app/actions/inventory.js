@@ -48,6 +48,11 @@ export async function saveInventoryData(prevState, formData) {
         return { message: 'User not found', success: false }
     }
 
+    // Only SSJ, SSO (and ADMIN) can save inventory data
+    if (user.role !== 'SSJ' && user.role !== 'SSO' && user.role !== 'ADMIN') {
+        return { message: 'สิทธิ์การบันทึกข้อมูลสำหรับ สสจ. และ สสอ. เท่านั้น', success: false }
+    }
+
     const recordDate = new Date(formData.get('recordDate'))
     recordDate.setHours(0, 0, 0, 0)
 

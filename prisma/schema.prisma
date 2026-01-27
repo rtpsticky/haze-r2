@@ -35,9 +35,11 @@ model Location {
 
 enum Role {
   ADMIN
+  HEALTH_REGION // ระดับเขตสุขภาพ (เขตสุขภาพ)
   SSJ // ระดับจังหวัด (สสจ.)
   SSO // ระดับอำเภอ (สสอ.)
-  HOSPITAL // ระดับตำบล (รพ.สต. / รพช.)
+  HOSPITAL // ระดับโรงพยาบาล (รพ.)
+  PCU // ระดับ รพ.สต. (รพ.สต.)
 }
 
 model User {

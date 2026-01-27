@@ -178,6 +178,111 @@ export default function CleanRoomForm({ user }) {
         )
     }
 
+    const canEdit = user?.role === 'SSJ' || user?.role === 'SSO' || user?.role === 'ADMIN'
+
+    // If fetch success/submit success handled above...
+
+    if (!canEdit) {
+        return (
+            <div className="min-h-screen bg-slate-50 py-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="mb-8 flex items-center gap-4">
+                        <Link href="/" className="p-2 rounded-lg bg-white shadow-sm text-slate-500 hover:text-emerald-600 hover:shadow transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                            </svg>
+                        </Link>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">ห้องปลอดฝุ่น (Clean Room)</h1>
+                            <p className="text-slate-500 text-sm">
+                                {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-800 mb-8">
+                        <p>สิทธิ์การบันทึกข้อมูลสำหรับเจ้าหน้าที่ สสจ. และ สสอ. เท่านั้น</p>
+                    </div>
+
+                    {/* History Table - Still visible for viewing if needed? Or hide too?
+                        User said "Users can input". Usually they want to see report.
+                        I'll leave history visible if I return here?
+                        Wait, if I return here, I skip the whole render.
+                        I should probably render HistoryTable Below.
+                        But CleanRoomForm renders CleanRoomTable (Input) AND History Table is BELOW in the SAME file?
+                        Wait, let's look at lines 236.
+                        Yes, History Table is inside CleanRoomForm component return.
+                        So if I return early, History is hidden too.
+                        Typically "Restrict Input" implies they can still VIEW.
+                        So I should ONLY hide the FORM.
+                    */}
+                </div>
+
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    {/* History Table Duplicate Logic or Render Component? 
+                         The code has History Table inline.
+                         I should restructure slightly to allow rendering History.
+                         Or just wrap the FORM in {canEdit && <form...>}
+                     */}
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="p-6">
+                            <h2 className="text-lg font-semibold text-slate-900 mb-4">ประวัติการบันทึกข้อมูล</h2>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-slate-200">
+                                    <thead className="bg-slate-50">
+                                        <tr>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
+                                            {user?.role === 'ADMIN' && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
+                                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">จำนวนสถานที่</th>
+                                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">เป้าหมาย (ห้อง)</th>
+                                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">ผ่านมาตรฐาน (ห้อง)</th>
+                                            <th scope="col" className="relative px-6 py-3">
+                                                <span className="sr-only">Actions</span>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-slate-200">
+                                        {isLoadingHistory ? (
+                                            <tr>
+                                                <td colSpan="5" className="px-6 py-4 text-center text-sm text-slate-500">กำลังโหลดข้อมูล...</td>
+                                            </tr>
+                                        ) : history.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="5" className="px-6 py-4 text-center text-sm text-slate-500">ไม่พบประวัติการบันทึก</td>
+                                            </tr>
+                                        ) : (
+                                            history.map((record, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                                                        {new Date(record.recordDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                    </td>
+                                                    {user?.role === 'ADMIN' && (
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                            {record.locationName || '-'}
+                                                        </td>
+                                                    )}
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalPlaces}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalTarget}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center hover:font-bold hover:text-emerald-600 transition-colors cursor-default">
+                                                        {record.totalPassed}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                        {/* Actions Hidden for non-editors (unless logic inside handles it?) */}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

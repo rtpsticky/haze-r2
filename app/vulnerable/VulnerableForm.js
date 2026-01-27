@@ -67,6 +67,36 @@ export default function VulnerablePage({ user }) {
         )
     }
 
+    const canEdit = user?.role === 'SSO' || user?.role === 'ADMIN'
+
+    // If fetch success/submit success handled above...
+
+    if (!canEdit) {
+        return (
+            <div className="min-h-screen bg-slate-50 py-8">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="mb-8 flex items-center gap-4">
+                        <Link href="/" className="p-2 rounded-lg bg-white shadow-sm text-slate-500 hover:text-emerald-600 hover:shadow transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                            </svg>
+                        </Link>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">กลุ่มเปราะบาง (Vulnerable Groups)</h1>
+                            <p className="text-slate-500 text-sm">
+                                {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-800 mb-8">
+                        <p>สิทธิ์การบันทึกข้อมูลสำหรับเจ้าหน้าที่ สสอ. เท่านั้น</p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

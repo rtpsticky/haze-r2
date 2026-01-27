@@ -10,6 +10,7 @@ export async function register(prevState, formData) {
     const password = formData.get('password')
     const confirmPassword = formData.get('confirmPassword')
     const orgName = formData.get('orgName')
+    const role = formData.get('role')
 
     let locationId = formData.get('locationId')
     const provinceName = formData.get('provinceName')
@@ -53,7 +54,7 @@ export async function register(prevState, formData) {
         }
     }
 
-    if (!name || !username || !password || !orgName || !locationId) {
+    if (!name || !username || !password || !orgName || !locationId || !role) {
         return { message: 'กรุณากรอกข้อมูลให้ครบถ้วน' }
     }
 
@@ -97,7 +98,7 @@ export async function register(prevState, formData) {
                 username,
                 password: hashedPassword,
                 orgName,
-                role: 'HOSPITAL',
+                role: role,
                 locationId: location.id,
                 isApproved: false, // Default to false
             },

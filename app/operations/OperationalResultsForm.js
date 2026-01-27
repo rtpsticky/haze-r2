@@ -258,16 +258,18 @@ export default function OperationalResultsForm({ user }) {
 
             {/* Action Bar */}
             <div className="flex justify-end mb-4">
-                <button
-                    onClick={() => openModal()}
-                    disabled={!currentLocationId}
-                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                        <path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd" />
-                    </svg>
-                    เพิ่มรายงาน
-                </button>
+                {['PCU', 'SSO', 'SSJ', 'ADMIN'].includes(user?.role) && (
+                    <button
+                        onClick={() => openModal()}
+                        disabled={!currentLocationId}
+                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                            <path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd" />
+                        </svg>
+                        เพิ่มรายงาน
+                    </button>
+                )}
             </div>
 
             {/* History Table */}
@@ -289,12 +291,16 @@ export default function OperationalResultsForm({ user }) {
                                         {new Date(dateStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                     </td>
                                     <td className="px-6 py-4 text-center flex items-center justify-center gap-3">
-                                        <button onClick={() => openModal(dateStr)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
-                                            แก้ไข
-                                        </button>
-                                        <button onClick={() => handleDelete(dateStr)} className="text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
-                                            ลบ
-                                        </button>
+                                        {['PCU', 'SSO', 'SSJ', 'ADMIN'].includes(user?.role) && (
+                                            <>
+                                                <button onClick={() => openModal(dateStr)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                                                    แก้ไข
+                                                </button>
+                                                <button onClick={() => handleDelete(dateStr)} className="text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                                                    ลบ
+                                                </button>
+                                            </>
+                                        )}
                                     </td>
                                 </tr>
                             ))
