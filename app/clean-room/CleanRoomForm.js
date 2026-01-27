@@ -382,9 +382,13 @@ export default function CleanRoomForm({ user }) {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                     {(user?.role !== 'ADMIN' || user?.locationId === record.locationId) && (
-                                                        <button onClick={() => handleEdit(record)} className="text-emerald-600 hover:text-emerald-900 mr-4">แก้ไข</button>
+                                                        <button onClick={() => handleEdit(record)} className="text-emerald-600 hover:text-emerald-900 mr-4">
+                                                            {canEdit ? 'แก้ไข' : 'ดูรายละเอียด'}
+                                                        </button>
                                                     )}
-                                                    <button onClick={() => handleDelete(record.recordDate, record.locationId)} className="text-red-600 hover:text-red-900">ลบ</button>
+                                                    {canEdit && (
+                                                        <button onClick={() => handleDelete(record.recordDate, record.locationId)} className="text-red-600 hover:text-red-900">ลบ</button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))
@@ -399,25 +403,29 @@ export default function CleanRoomForm({ user }) {
                 <Modal
                     isOpen={isEditModalOpen}
                     onClose={() => setIsEditModalOpen(false)}
-                    title={`แก้ไขข้อมูลวันที่ ${editingDate ? new Date(editingDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}`}
+                    title={`${canEdit ? 'แก้ไข' : 'รายละเอียด'}ข้อมูลวันที่ ${editingDate ? new Date(editingDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}`}
                     maxWidth="sm:max-w-[90%]"
                 >
                     <div className="space-y-4 max-h-[80vh] overflow-y-auto p-1">
-                        <CleanRoomTable formData={editFormData} handleChange={handleEditChange} isLoadingData={isLoadingEditData} />
+                        <div className={!canEdit ? 'pointer-events-none opacity-80' : ''}>
+                            <CleanRoomTable formData={editFormData} handleChange={handleEditChange} isLoadingData={isLoadingEditData} />
+                        </div>
                         <div className="pt-4 flex justify-end gap-3">
                             <button
                                 onClick={() => setIsEditModalOpen(false)}
                                 className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-200"
                             >
-                                ยกเลิก
+                                {canEdit ? 'ยกเลิก' : 'ปิด'}
                             </button>
-                            <button
-                                onClick={handleSaveEdit}
-                                disabled={isSavingEdit || isLoadingEditData}
-                                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
-                            >
-                                {isSavingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
-                            </button>
+                            {canEdit && (
+                                <button
+                                    onClick={handleSaveEdit}
+                                    disabled={isSavingEdit || isLoadingEditData}
+                                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                                >
+                                    {isSavingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </Modal>
