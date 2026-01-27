@@ -5,7 +5,7 @@ import { useActionState } from 'react'
 import { saveInventoryData } from '@/app/actions/inventory'
 import InventoryInputs, { items } from './InventoryInputs'
 
-export default function EditInventoryModal({ isOpen, onClose, date, initialRecords }) {
+export default function EditInventoryModal({ isOpen, onClose, date, initialRecords, isReadOnly = false }) {
     const [state, formAction, isPending] = useActionState(saveInventoryData, { message: '', success: false })
     const [counts, setCounts] = useState({})
 
@@ -49,13 +49,13 @@ export default function EditInventoryModal({ isOpen, onClose, date, initialRecor
                         <div className="sm:flex sm:items-start w-full">
                             <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                                 <h3 className="text-xl font-semibold leading-6 text-slate-900" id="modal-title">
-                                    แก้ไขข้อมูลวันที่ {new Date(date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                    {isReadOnly ? 'รายละเอียด' : 'แก้ไข'}ข้อมูลวันที่ {new Date(date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                 </h3>
 
                                 <form action={formAction} className="mt-6 space-y-6">
                                     <input type="hidden" name="recordDate" value={date} />
 
-                                    <InventoryInputs counts={counts} onChange={handleCountChange} />
+                                    <InventoryInputs counts={counts} onChange={handleCountChange} disabled={isReadOnly} />
 
                                     {state?.message && (
                                         <div className={`p-4 rounded-lg ${state.success ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
@@ -64,19 +64,21 @@ export default function EditInventoryModal({ isOpen, onClose, date, initialRecor
                                     )}
 
                                     <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                                        <button
-                                            type="submit"
-                                            disabled={isPending}
-                                            className="inline-flex w-full justify-center rounded-xl bg-emerald-600 px-3 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:col-start-2 disabled:opacity-70"
-                                        >
-                                            {isPending ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
-                                        </button>
+                                        {!isReadOnly && (
+                                            <button
+                                                type="submit"
+                                                disabled={isPending}
+                                                className="inline-flex w-full justify-center rounded-xl bg-emerald-600 px-3 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 sm:col-start-2 disabled:opacity-70"
+                                            >
+                                                {isPending ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => onClose(false)}
-                                            className="mt-3 inline-flex w-full justify-center rounded-xl bg-white px-3 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:col-start-1 sm:mt-0"
+                                            className={`mt-3 inline-flex w-full justify-center rounded-xl bg-white px-3 py-3 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 sm:mt-0 ${!isReadOnly ? 'sm:col-start-1' : 'col-span-2'}`}
                                         >
-                                            ยกเลิก
+                                            ปิด
                                         </button>
                                     </div>
                                 </form>

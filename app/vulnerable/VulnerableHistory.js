@@ -45,6 +45,8 @@ export default function VulnerableHistory({ history, isAdmin, userRole }) {
         )
     }
 
+    const canEdit = ['SSO', 'ADMIN'].includes(userRole)
+
     return (
         <>
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-8">
@@ -86,20 +88,19 @@ export default function VulnerableHistory({ history, isAdmin, userRole }) {
                                             <button
                                                 onClick={() => handleEdit(item.date, item.records)}
                                                 disabled={isDeleting === item.date}
-                                                // Disable edit for admin if not clear ownership, or just allow view. 
-                                                // Assuming admin usually just views history here. 
-                                                // But let's keep it enabled if they want to view details.
                                                 className="text-indigo-600 hover:text-indigo-900 px-3 py-1.5 rounded hover:bg-indigo-50 transition-colors disabled:opacity-50"
                                             >
-                                                ดู/แก้ไข
+                                                {canEdit ? 'แก้ไข' : 'ดูรายละเอียด'}
                                             </button>
-                                            <button
-                                                onClick={() => handleDelete(item.date, item.locationId)}
-                                                disabled={isDeleting === item.date}
-                                                className="text-red-600 hover:text-red-900 px-3 py-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
-                                            >
-                                                {isDeleting === item.date ? 'กำลังลบ...' : 'ลบ'}
-                                            </button>
+                                            {canEdit && (
+                                                <button
+                                                    onClick={() => handleDelete(item.date, item.locationId)}
+                                                    disabled={isDeleting === item.date}
+                                                    className="text-red-600 hover:text-red-900 px-3 py-1.5 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
+                                                >
+                                                    {isDeleting === item.date ? 'กำลังลบ...' : 'ลบ'}
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -115,6 +116,7 @@ export default function VulnerableHistory({ history, isAdmin, userRole }) {
                     onClose={handleCloseModal}
                     date={editData.date}
                     initialRecords={editData.records}
+                    isReadOnly={!canEdit}
                 />
             )}
         </>

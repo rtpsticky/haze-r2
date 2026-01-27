@@ -240,6 +240,8 @@ export default function OperationalResultsForm({ user }) {
     const handlePPEChange = (group, item, val) => setFormData(p => ({ ...p, [group]: { ...p[group], [item]: val } }))
     const handleChange = (field, val) => setFormData(p => ({ ...p, [field]: val }))
 
+    const canEdit = ['PCU', 'SSO', 'SSJ', 'ADMIN'].includes(user?.role)
+
     return (
         <div className="relative font-sarabun text-slate-800 animate-fade-in-up">
 
@@ -258,7 +260,7 @@ export default function OperationalResultsForm({ user }) {
 
             {/* Action Bar */}
             <div className="flex justify-end mb-4">
-                {['PCU', 'SSO', 'SSJ', 'ADMIN'].includes(user?.role) && (
+                {canEdit && (
                     <button
                         onClick={() => openModal()}
                         disabled={!currentLocationId}
@@ -291,15 +293,13 @@ export default function OperationalResultsForm({ user }) {
                                         {new Date(dateStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                     </td>
                                     <td className="px-6 py-4 text-center flex items-center justify-center gap-3">
-                                        {['PCU', 'SSO', 'SSJ', 'ADMIN'].includes(user?.role) && (
-                                            <>
-                                                <button onClick={() => openModal(dateStr)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
-                                                    แก้ไข
-                                                </button>
-                                                <button onClick={() => handleDelete(dateStr)} className="text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
-                                                    ลบ
-                                                </button>
-                                            </>
+                                        <button onClick={() => openModal(dateStr)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                                            {canEdit ? 'แก้ไข' : 'ดูรายละเอียด'}
+                                        </button>
+                                        {canEdit && (
+                                            <button onClick={() => handleDelete(dateStr)} className="text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+                                                ลบ
+                                            </button>
                                         )}
                                     </td>
                                 </tr>
@@ -314,7 +314,7 @@ export default function OperationalResultsForm({ user }) {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in overflow-y-auto">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-bounce-in font-sarabun">
                         <div className="sticky top-0 bg-white z-10 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-slate-700">บันทึกข้อมูลการดำเนินงาน</h3>
+                            <h3 className="text-lg font-bold text-slate-700">{canEdit ? 'ที่บันทึกไว้' : 'รายละเอียด'}ข้อมูลการดำเนินงาน</h3>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -326,8 +326,8 @@ export default function OperationalResultsForm({ user }) {
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-600 mb-2">วันที่บันทึกข้อมูล</label>
-                                    <input type="date" className="block w-full rounded-lg border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm py-2.5 px-3"
-                                        value={editDate} onChange={(e) => { setEditDate(e.target.value); loadFormData(e.target.value) }} required />
+                                    <input type="date" className="block w-full rounded-lg border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 text-sm py-2.5 px-3 disabled:bg-slate-100 disabled:text-slate-500"
+                                        value={editDate} onChange={(e) => { setEditDate(e.target.value); loadFormData(e.target.value) }} required disabled={!canEdit} />
                                 </div>
 
                                 {/* Form Sections (Reused) */}
@@ -338,21 +338,21 @@ export default function OperationalResultsForm({ user }) {
                                     <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-600 mb-2">ผู้ป่วยติดเตียงที่รับมอบ (คน)</label>
-                                            <input type="number" className="block w-full rounded-lg border-slate-200" value={formData.bedriddenCount} onChange={(e) => handleChange('bedriddenCount', e.target.value)} placeholder="0" />
+                                            <input type="number" className="block w-full rounded-lg border-slate-200 disabled:bg-slate-100 disabled:text-slate-500" value={formData.bedriddenCount} onChange={(e) => handleChange('bedriddenCount', e.target.value)} placeholder="0" disabled={!canEdit} />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-600 mb-2">มุ้งที่มอบให้ประชาชน (หลัง)</label>
-                                            <input type="number" className="block w-full rounded-lg border-slate-200" value={formData.netsGiven} onChange={(e) => handleChange('netsGiven', e.target.value)} placeholder="0" />
+                                            <input type="number" className="block w-full rounded-lg border-slate-200 disabled:bg-slate-100 disabled:text-slate-500" value={formData.netsGiven} onChange={(e) => handleChange('netsGiven', e.target.value)} placeholder="0" disabled={!canEdit} />
                                         </div>
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-600 mb-2">มุ้งที่ อปท. สนับสนุน (หลัง)</label>
-                                            <input type="number" className="block w-full rounded-lg border-slate-200" value={formData.netsLao} onChange={(e) => handleChange('netsLao', e.target.value)} placeholder="0" />
+                                            <input type="number" className="block w-full rounded-lg border-slate-200 disabled:bg-slate-100 disabled:text-slate-500" value={formData.netsLao} onChange={(e) => handleChange('netsLao', e.target.value)} placeholder="0" disabled={!canEdit} />
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="bg-slate-50/50 rounded-xl border border-slate-100 overflow-hidden">
-                                    <div className="px-6 py-3 border-b border-slate-100 flex items-center gap-2 bg-slate-100/50">
+                                    <div className="px-6 py-3 border-b border-slate-100 flex items-center gap-2 bg-emerald-100/50">
                                         <span className="w-2 h-2 rounded-full bg-emerald-500"></span><h2 className="text-base font-bold text-slate-700">อุปกรณ์ป้องกัน (PPE)</h2>
                                     </div>
                                     <div className="p-4 overflow-x-auto">
@@ -373,8 +373,8 @@ export default function OperationalResultsForm({ user }) {
                                                         <td className="py-2 text-sm font-medium text-slate-700">{row.label}</td>
                                                         {['Surgical Mask', 'N95', 'Carbon Mask', 'Cloth Mask'].map(item => (
                                                             <td key={item} className="px-2 py-1">
-                                                                <input type="number" className="w-full text-center text-sm border-slate-200 rounded-lg p-1"
-                                                                    value={formData[row.key][item] || ''} onChange={(e) => handlePPEChange(row.key, item, e.target.value)} placeholder="0" />
+                                                                <input type="number" className="w-full text-center text-sm border-slate-200 rounded-lg p-1 disabled:bg-slate-100 disabled:text-slate-500"
+                                                                    value={formData[row.key][item] || ''} onChange={(e) => handlePPEChange(row.key, item, e.target.value)} placeholder="0" disabled={!canEdit} />
                                                                 <div className="text-[10px] text-center text-slate-400 mt-0.5">สะสม {row.acc[item]}</div>
                                                             </td>
                                                         ))}
@@ -386,9 +386,13 @@ export default function OperationalResultsForm({ user }) {
                                 </div>
 
                                 <div className="flex justify-end pt-4 border-t border-slate-100 gap-3">
-                                    <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium transition-colors">ยกเลิก</button>
-                                    <button type="submit" disabled={isPending} className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5">
-                                        {isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                                    {canEdit && (
+                                        <button type="submit" disabled={isPending} className="px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-lg shadow-emerald-500/20 transition-all hover:-translate-y-0.5">
+                                            {isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={() => setShowModal(false)} className="px-6 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 font-medium transition-colors">
+                                        {canEdit ? 'ยกเลิก' : 'ปิด'}
                                     </button>
                                 </div>
                             </form>
@@ -406,4 +410,5 @@ export default function OperationalResultsForm({ user }) {
             )}
         </div>
     )
+}
 }

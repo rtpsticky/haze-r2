@@ -27,7 +27,7 @@ export default async function Page() {
         <>
             <InventoryForm user={user} />
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-                <InventoryHistory history={history} isAdmin={user?.role === 'ADMIN'} />
+                <InventoryHistory history={history} isAdmin={user?.role === 'ADMIN'} userRole={user?.role} />
             </div>
         </>
     )
