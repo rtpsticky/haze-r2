@@ -47,12 +47,20 @@ export default function OperationalResultsForm({ user }) {
         netsLao: '',
         ppeGeneral: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
         ppeChildren: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
-        ppePregnant: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 }
+        ppePregnant: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
+        ppeElderly: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
+        ppeBedridden: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
+        ppeHeart: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
+        ppeRespiratory: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 }
     })
     const [accumulated, setAccumulated] = useState({
         ppeGeneral: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
         ppeChildren: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
-        ppePregnant: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 }
+        ppePregnant: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
+        ppeElderly: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
+        ppeBedridden: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
+        ppeHeart: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 },
+        ppeRespiratory: { "Surgical Mask": 0, "N95": 0, "Carbon Mask": 0, "Cloth Mask": 0 }
     })
 
     // --- Initial Load ---
@@ -161,6 +169,11 @@ export default function OperationalResultsForm({ user }) {
             const ppeGen = { ...formData.ppeGeneral }; resetPPE(ppeGen)
             const ppeChild = { ...formData.ppeChildren }; resetPPE(ppeChild)
             const ppePreg = { ...formData.ppePregnant }; resetPPE(ppePreg)
+            const ppeEld = { ...formData.ppeElderly }; resetPPE(ppeEld)
+            const ppeBed = { ...formData.ppeBedridden }; resetPPE(ppeBed)
+            const ppeHrt = { ...formData.ppeHeart }; resetPPE(ppeHrt)
+            const ppeResp = { ...formData.ppeRespiratory }; resetPPE(ppeResp)
+
             let netsGivenVal = ''
 
             ops.forEach(op => {
@@ -169,6 +182,10 @@ export default function OperationalResultsForm({ user }) {
                     if (op.targetGroup === 'GENERAL_PUBLIC') ppeGen[op.itemName] = op.amount
                     if (op.targetGroup === 'SMALL_CHILDREN') ppeChild[op.itemName] = op.amount
                     if (op.targetGroup === 'PREGNANT_WOMEN') ppePreg[op.itemName] = op.amount
+                    if (op.targetGroup === 'ELDERLY') ppeEld[op.itemName] = op.amount
+                    if (op.targetGroup === 'BEDRIDDEN') ppeBed[op.itemName] = op.amount
+                    if (op.targetGroup === 'HEART_DISEASE') ppeHrt[op.itemName] = op.amount
+                    if (op.targetGroup === 'RESPIRATORY_DISEASE') ppeResp[op.itemName] = op.amount
                 }
             })
             const bedridden = res.data.vulnerables.find(v => v.groupType === 'BEDRIDDEN_OP')
@@ -180,19 +197,46 @@ export default function OperationalResultsForm({ user }) {
                 netsLao: support ? support.dustNetSupport : '',
                 ppeGeneral: ppeGen,
                 ppeChildren: ppeChild,
-                ppePregnant: ppePreg
+                ppePregnant: ppePreg,
+                ppeElderly: ppeEld,
+                ppeBedridden: ppeBed,
+                ppeHeart: ppeHrt,
+                ppeRespiratory: ppeResp
             })
 
             // Load Accumulated
             const accGen = { ...accumulated.ppeGeneral }; resetPPE(accGen)
             const accChild = { ...accumulated.ppeChildren }; resetPPE(accChild)
             const accPreg = { ...accumulated.ppePregnant }; resetPPE(accPreg)
+            const accEld = { ...accumulated.ppeElderly }; resetPPE(accEld)
+            const accBed = { ...accumulated.ppeBedridden }; resetPPE(accBed)
+            const accHrt = { ...accumulated.ppeHeart }; resetPPE(accHrt)
+            const accResp = { ...accumulated.ppeRespiratory }; resetPPE(accResp)
+
             res.data.accumulated.forEach(grp => {
-                if (grp.targetGroup === 'GENERAL_PUBLIC') accGen[grp.itemName] = grp._sum.amount
-                if (grp.targetGroup === 'SMALL_CHILDREN') accChild[grp.itemName] = grp._sum.amount
-                if (grp.targetGroup === 'PREGNANT_WOMEN') accPreg[grp.itemName] = grp._sum.amount
+                const map = {
+                    'GENERAL_PUBLIC': accGen,
+                    'SMALL_CHILDREN': accChild,
+                    'PREGNANT_WOMEN': accPreg,
+                    'ELDERLY': accEld,
+                    'BEDRIDDEN': accBed,
+                    'HEART_DISEASE': accHrt,
+                    'RESPIRATORY_DISEASE': accResp
+                }
+                const targetAcc = map[grp.targetGroup]
+                if (targetAcc && targetAcc.hasOwnProperty(grp.itemName)) {
+                    targetAcc[grp.itemName] = grp._sum.amount
+                }
             })
-            setAccumulated({ ppeGeneral: accGen, ppeChildren: accChild, ppePregnant: accPreg })
+            setAccumulated({
+                ppeGeneral: accGen,
+                ppeChildren: accChild,
+                ppePregnant: accPreg,
+                ppeElderly: accEld,
+                ppeBedridden: accBed,
+                ppeHeart: accHrt,
+                ppeRespiratory: accResp
+            })
         }
         setIsLoading(false)
     }
@@ -208,9 +252,18 @@ export default function OperationalResultsForm({ user }) {
             fd.append('bedriddenCount', formData.bedriddenCount)
             fd.append('netsGiven', formData.netsGiven)
             fd.append('netsLao', formData.netsLao)
-            Object.entries(formData.ppeGeneral).forEach(([k, v]) => fd.append(`ppeGeneral_${k}`, v))
-            Object.entries(formData.ppeChildren).forEach(([k, v]) => fd.append(`ppeChildren_${k}`, v))
-            Object.entries(formData.ppePregnant).forEach(([k, v]) => fd.append(`ppePregnant_${k}`, v))
+
+            const appendPPE = (prefix, data) => {
+                Object.entries(data).forEach(([k, v]) => fd.append(`${prefix}_${k}`, v))
+            }
+
+            appendPPE('ppeGeneral', formData.ppeGeneral)
+            appendPPE('ppeChildren', formData.ppeChildren)
+            appendPPE('ppePregnant', formData.ppePregnant)
+            appendPPE('ppeElderly', formData.ppeElderly)
+            appendPPE('ppeBedridden', formData.ppeBedridden)
+            appendPPE('ppeHeart', formData.ppeHeart)
+            appendPPE('ppeRespiratory', formData.ppeRespiratory)
 
             const res = await saveOperationData(null, fd)
             if (res.success) {
@@ -367,7 +420,11 @@ export default function OperationalResultsForm({ user }) {
                                                 {[
                                                     { label: 'ประชาชนทั่วไป', key: 'ppeGeneral', acc: accumulated.ppeGeneral },
                                                     { label: 'เด็กเล็ก', key: 'ppeChildren', acc: accumulated.ppeChildren },
-                                                    { label: 'หญิงตั้งครรภ์', key: 'ppePregnant', acc: accumulated.ppePregnant }
+                                                    { label: 'หญิงตั้งครรภ์', key: 'ppePregnant', acc: accumulated.ppePregnant },
+                                                    { label: 'ผู้สูงอายุ', key: 'ppeElderly', acc: accumulated.ppeElderly },
+                                                    { label: 'ผู้ป่วยติดเตียง', key: 'ppeBedridden', acc: accumulated.ppeBedridden },
+                                                    { label: 'ผู้ป่วยโรคหัวใจ', key: 'ppeHeart', acc: accumulated.ppeHeart },
+                                                    { label: 'ผู้ป่วยโรคทางเดินหายใจ', key: 'ppeRespiratory', acc: accumulated.ppeRespiratory }
                                                 ].map((row) => (
                                                     <tr key={row.key}>
                                                         <td className="py-2 text-sm font-medium text-slate-700">{row.label}</td>

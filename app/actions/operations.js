@@ -238,6 +238,38 @@ export async function saveOperationData(prevState, formData) {
         'Cloth Mask': parseInt(formData.get('ppePregnant_Cloth Mask') || '0'),
     }
 
+    // 7. PPE Elderly
+    const ppeElderly = {
+        'Surgical Mask': parseInt(formData.get('ppeElderly_Surgical Mask') || '0'),
+        'N95': parseInt(formData.get('ppeElderly_N95') || '0'),
+        'Carbon Mask': parseInt(formData.get('ppeElderly_Carbon Mask') || '0'),
+        'Cloth Mask': parseInt(formData.get('ppeElderly_Cloth Mask') || '0'),
+    }
+
+    // 8. PPE Bedridden
+    const ppeBedridden = {
+        'Surgical Mask': parseInt(formData.get('ppeBedridden_Surgical Mask') || '0'),
+        'N95': parseInt(formData.get('ppeBedridden_N95') || '0'),
+        'Carbon Mask': parseInt(formData.get('ppeBedridden_Carbon Mask') || '0'),
+        'Cloth Mask': parseInt(formData.get('ppeBedridden_Cloth Mask') || '0'),
+    }
+
+    // 9. PPE Heart
+    const ppeHeart = {
+        'Surgical Mask': parseInt(formData.get('ppeHeart_Surgical Mask') || '0'),
+        'N95': parseInt(formData.get('ppeHeart_N95') || '0'),
+        'Carbon Mask': parseInt(formData.get('ppeHeart_Carbon Mask') || '0'),
+        'Cloth Mask': parseInt(formData.get('ppeHeart_Cloth Mask') || '0'),
+    }
+
+    // 10. PPE Respiratory
+    const ppeRespiratory = {
+        'Surgical Mask': parseInt(formData.get('ppeRespiratory_Surgical Mask') || '0'),
+        'N95': parseInt(formData.get('ppeRespiratory_N95') || '0'),
+        'Carbon Mask': parseInt(formData.get('ppeRespiratory_Carbon Mask') || '0'),
+        'Cloth Mask': parseInt(formData.get('ppeRespiratory_Cloth Mask') || '0'),
+    }
+
     try {
         await prisma.$transaction(async (tx) => {
             // 1. Update VulnerableData (Bedridden)
@@ -345,6 +377,62 @@ export async function saveOperationData(prevState, formData) {
                         recordDate: date,
                         activityType: 'PPE',
                         targetGroup: 'PREGNANT_WOMEN',
+                        itemName: item,
+                        amount: count
+                    })
+                }
+            }
+
+            // PPE Elderly
+            for (const [item, count] of Object.entries(ppeElderly)) {
+                if (count > 0) {
+                    opsToInsert.push({
+                        locationId: targetLocationId,
+                        recordDate: date,
+                        activityType: 'PPE',
+                        targetGroup: 'ELDERLY',
+                        itemName: item,
+                        amount: count
+                    })
+                }
+            }
+
+            // PPE Bedridden
+            for (const [item, count] of Object.entries(ppeBedridden)) {
+                if (count > 0) {
+                    opsToInsert.push({
+                        locationId: targetLocationId,
+                        recordDate: date,
+                        activityType: 'PPE',
+                        targetGroup: 'BEDRIDDEN',
+                        itemName: item,
+                        amount: count
+                    })
+                }
+            }
+
+            // PPE Heart
+            for (const [item, count] of Object.entries(ppeHeart)) {
+                if (count > 0) {
+                    opsToInsert.push({
+                        locationId: targetLocationId,
+                        recordDate: date,
+                        activityType: 'PPE',
+                        targetGroup: 'HEART_DISEASE',
+                        itemName: item,
+                        amount: count
+                    })
+                }
+            }
+
+            // PPE Respiratory
+            for (const [item, count] of Object.entries(ppeRespiratory)) {
+                if (count > 0) {
+                    opsToInsert.push({
+                        locationId: targetLocationId,
+                        recordDate: date,
+                        activityType: 'PPE',
+                        targetGroup: 'RESPIRATORY_DISEASE',
                         itemName: item,
                         amount: count
                     })

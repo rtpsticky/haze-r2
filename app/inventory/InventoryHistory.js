@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { deleteInventoryReport } from '@/app/actions/inventory'
 import EditInventoryModal from './EditInventoryModal'
 
-export default function InventoryHistory({ history, isAdmin }) {
+export default function InventoryHistory({ history, isAdmin, userRole }) {
     const [editData, setEditData] = useState(null)
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [isDeleting, setIsDeleting] = useState(null)
