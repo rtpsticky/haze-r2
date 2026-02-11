@@ -76,7 +76,7 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen p-6 md:p-8" style={{ backgroundColor: COLORS.bg, color: COLORS.text }}>
             <header className="mb-8">
-                <h1 className="text-3xl font-bold mb-2" style={{ color: COLORS.accent }}>แดชบอร์ดปฏิบัติการ EMS PM2.5</h1>
+                <h1 className="text-3xl font-bold mb-2" style={{ color: COLORS.accent }}>Dashboard รายงานผลการดำเนินงาน Haze-r2</h1>
                 <p className="text-lg opacity-80">ภาพรวมมาตรการ ทรัพยากร และกลุ่มเปราะบาง</p>
             </header>
 
