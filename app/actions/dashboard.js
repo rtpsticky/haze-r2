@@ -93,7 +93,11 @@ export async function getDashboardStats() {
                 completed: measureCompleted,
                 pending: measureTotal - measureCompleted,
             },
-            pheoc: latestPheoc,
+            pheoc: latestPheoc ? {
+                ...latestPheoc,
+                reportDate: latestPheoc.reportDate.toISOString(),
+                recordedAt: latestPheoc.recordedAt.toISOString(),
+            } : null,
             vulnerable: {
                 total: totalVulnerable,
                 byGroup: vulnerableStats.map(v => ({ name: v.groupType, count: v._sum.targetCount || 0 })),
