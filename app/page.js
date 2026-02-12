@@ -39,7 +39,7 @@ export default async function Home() {
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-slate-900">{user?.name || 'ผู้ใช้งาน'}</p>
-              <p className="text-xs text-slate-500">{user?.orgName || 'หน่วยงาน'}</p>
+              <p className="text-xs text-slate-500">{user?.orgName || 'หน่วยงาน'} ({user?.role})</p>
             </div>
             <form action={logout}>
               <button type="submit" className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 hover:text-red-600 transition-colors">

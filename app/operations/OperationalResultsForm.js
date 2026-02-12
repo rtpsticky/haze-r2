@@ -293,7 +293,7 @@ export default function OperationalResultsForm({ user }) {
     const handlePPEChange = (group, item, val) => setFormData(p => ({ ...p, [group]: { ...p[group], [item]: val } }))
     const handleChange = (field, val) => setFormData(p => ({ ...p, [field]: val }))
 
-    const canEdit = ['PCU', 'SSO', 'SSJ', 'ADMIN'].includes(user?.role)
+    const canEdit = ['HOSPITAL', 'PCU', 'SSO', 'SSJ', 'ADMIN'].includes(user?.role)
 
     return (
         <div className="relative font-sarabun text-slate-800 animate-fade-in-up">

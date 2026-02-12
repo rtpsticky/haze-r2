@@ -184,9 +184,9 @@ export async function saveOperationData(prevState, formData) {
 
     if (!user) return { success: false, message: 'User not found' }
 
-    // Only PCU, SSO, SSJ (and ADMIN) can save operation data
-    if (user.role !== 'PCU' && user.role !== 'SSO' && user.role !== 'SSJ' && user.role !== 'ADMIN') {
-        return { success: false, message: 'สิทธิ์การบันทึกข้อมูลสำหรับ รพ.สต., สสอ. และ สสจ. เท่านั้น' }
+    // Only HOSPTIAL, PCU, SSO, SSJ (and ADMIN) can save operation data
+    if (user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'SSO' && user.role !== 'SSJ' && user.role !== 'ADMIN') {
+        return { success: false, message: 'สิทธิ์การบันทึกข้อมูลสำหรับ รพ., รพ.สต., สสอ. และ สสจ. เท่านั้น' }
     }
 
     if (!user) return { success: false, message: 'User not found' }
