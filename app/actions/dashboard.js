@@ -128,7 +128,20 @@ export async function getDashboardStats(filters = {}) {
             },
         });
 
-        // 6. OperationLog Stats (Detailed Grouping) - FILTERED
+        // 2.6 Clean Room Group by Type
+        const cleanRoomByType = await prisma.cleanRoomReport.groupBy({
+            by: ['placeType'],
+            _sum: {
+                targetRoomCount: true,
+                passedStandard: true,
+                standard1Count: true,
+                standard2Count: true,
+                standard3Count: true
+            },
+            where: whereClause
+        });
+
+        // 2.7 Operation Logs Stats (Detailed Grouping) - FILTERED
         const operationStats = await prisma.operationLog.groupBy({
             by: ['activityType', 'targetGroup', 'itemName'],
             where: whereClause,
@@ -200,7 +213,17 @@ export async function getDashboardStats(filters = {}) {
                 totalStock: totalInventoryStock,
                 byItem: inventoryStats.map(i => ({ name: i.itemName, count: i._sum.stockCount || 0 })),
             },
-            cleanRoom: cleanRoomStats._sum,
+            cleanRoom: {
+                ...cleanRoomStats._sum,
+                byType: cleanRoomByType.map(t => ({
+                    name: t.placeType,
+                    count: t._sum.passedStandard || 0,
+                    total: t._sum.targetRoomCount || 0,
+                    standard1: t._sum.standard1Count || 0,
+                    standard2: t._sum.standard2Count || 0,
+                    standard3: t._sum.standard3Count || 0
+                }))
+            },
             operation: {
                 detailed: operationStats.map(o => ({
                     activity: o.activityType,
