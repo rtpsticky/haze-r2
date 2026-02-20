@@ -301,7 +301,7 @@ export default function DashboardPage() {
                                 onClick={() => openModal('Response Level 1', stats.situation?.lists?.level1, 'yellow')}
                                 className="cursor-pointer p-4 rounded-xl bg-yellow-50/50 border border-yellow-100 hover:border-yellow-300 transition-all hover:shadow-md text-center"
                             >
-                                <div className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-1 rounded-full inline-block mb-2">L1</div>
+                                <div className="bg-yellow-100 text-yellow-700 text-xs font-bold px-2 py-1 rounded-full inline-block mb-2">ระดับ 1</div>
                                 <div className="text-2xl font-bold text-slate-800">{stats.situation?.level1 || 0}</div>
                                 <div className="text-xs text-slate-400 mt-1">จังหวัด</div>
                             </div>
@@ -309,7 +309,7 @@ export default function DashboardPage() {
                                 onClick={() => openModal('Response Level 2', stats.situation?.lists?.level2, 'orange')}
                                 className="cursor-pointer p-4 rounded-xl bg-orange-50/50 border border-orange-100 hover:border-orange-300 transition-all hover:shadow-md text-center"
                             >
-                                <div className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full inline-block mb-2">L2</div>
+                                <div className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full inline-block mb-2">ระดับ 2</div>
                                 <div className="text-2xl font-bold text-slate-800">{stats.situation?.level2 || 0}</div>
                                 <div className="text-xs text-slate-400 mt-1">จังหวัด</div>
                             </div>
@@ -317,7 +317,7 @@ export default function DashboardPage() {
                                 onClick={() => openModal('Response Level 3', stats.situation?.lists?.level3, 'red')}
                                 className="cursor-pointer p-4 rounded-xl bg-red-50/50 border border-red-100 hover:border-red-300 transition-all hover:shadow-md text-center"
                             >
-                                <div className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full inline-block mb-2">L3</div>
+                                <div className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full inline-block mb-2">ระดับ 3</div>
                                 <div className="text-2xl font-bold text-slate-800">{stats.situation?.level3 || 0}</div>
                                 <div className="text-xs text-slate-400 mt-1">จังหวัด</div>
                             </div>
@@ -488,7 +488,7 @@ export default function DashboardPage() {
                     <div className="px-4">
                         <h3 className="text-slate-500 font-semibold mb-6 flex items-center gap-2">
                             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            เวชภัณฑ์ (Inventory)
+                            หน้ากากอนามัย
                         </h3>
                         <div className="text-center mb-6">
                             <div className="text-4xl font-bold text-blue-600">{stats.inventory?.totalStock?.toLocaleString()}</div>
