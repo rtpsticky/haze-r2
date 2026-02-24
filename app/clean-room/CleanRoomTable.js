@@ -11,6 +11,8 @@ const placeTypes = [
     'สสจ./สสอ.',
     'หน่วยงานภาครัฐ (อบจ/อบต./สนง.ต่างๆ)',
     'ศูนย์ดูแลผู้สูงอายุ',
+    'โรงเรียน',
+    'ศูนย์เด็กเล็ก',
 ]
 
 export default function CleanRoomTable({ formData, handleChange, isLoadingData }) {

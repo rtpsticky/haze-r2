@@ -39,12 +39,27 @@ export async function getDashboardStats(filters = {}) {
         });
 
         // 2.1 Situation Stats (Measures and Management) - UNFILTERED (Global Counts)
-        // Always fetch all locations for the summary card
+        // Group by province and take the latest report for each unique province name
         const allLocations = await prisma.location.findMany({
             include: {
                 pheocReports: {
                     orderBy: { reportDate: 'desc' },
                     take: 1
+                }
+            }
+        });
+
+        // Map to store latest report per province
+        const provinceLatestMap = {};
+
+        allLocations.forEach(loc => {
+            const latest = loc.pheocReports[0];
+            const name = loc.provinceName;
+
+            if (latest) {
+                // Keep the absolute latest report for each province
+                if (!provinceLatestMap[name] || new Date(latest.reportDate) > new Date(provinceLatestMap[name].reportDate)) {
+                    provinceLatestMap[name] = latest;
                 }
             }
         });
@@ -62,36 +77,31 @@ export async function getDashboardStats(filters = {}) {
         let level2List = [];
         let level3List = [];
 
-        allLocations.forEach(loc => {
-            const latest = loc.pheocReports[0];
-            const name = loc.provinceName;
+        Object.keys(provinceLatestMap).forEach(name => {
+            const latest = provinceLatestMap[name];
+            const dateStr = latest.reportDate.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+            const item = `${name} (${dateStr})`;
 
-            if (latest) {
-                if (latest.status === 'เฝ้าระวังปกติ') normalCount++;
-                // Assuming 'เฝ้าระวังใกล้ชิด' or similar maps to "Alert"
-                // Adjusting logic: Any status that isn't 'เฝ้าระวังปกติ' might be considered alert/abnormal, 
-                // OR specifically 'เฝ้าระวังใกล้ชิด'. Let's stick to 'เฝ้าระวังใกล้ชิด' as Alert for now based on common patterns along with 'เปิด PHEOC'.
-                // If the user meant "Alert" as general abnormal state, I might need to broader this. 
-                // But specifically requested "alert กี่จังหวัด", I will map 'เฝ้าระวังใกล้ชิด' to it.
-                if (latest.status === 'เฝ้าระวังใกล้ชิด' || latest.status === 'เปิด PHEOC') alertCount++;
+            if (latest.status === 'เฝ้าระวังปกติ') {
+                normalCount++;
+                normalList.push(item);
+            }
+            if (latest.status === 'เฝ้าระวังใกล้ชิด' || latest.status === 'เปิด PHEOC') {
+                alertCount++;
+                alertList.push(item);
+            }
 
-                if (latest.responseLevel === '1') level1Count++;
-                if (latest.responseLevel === '2') level2Count++;
-                if (latest.responseLevel === '3') level3Count++;
-
-                // Collect province names for lists
-                if (latest.status === 'เฝ้าระวังปกติ') normalList.push(name);
-                if (latest.status === 'เฝ้าระวังใกล้ชิด' || latest.status === 'เปิด PHEOC') alertList.push(name);
-
-                if (latest.responseLevel === '1') level1List.push(name);
-                if (latest.responseLevel === '2') level2List.push(name);
-                if (latest.responseLevel === '3') level3List.push(name);
-            } else {
-                // No report -> Treat as Normal? Or Unknown? 
-                // Usually default is normal if no data, or just ignore. 
-                // Let's count them as Normal for now to not look empty, OR just ignore. 
-                // Better to ignore to be accurate.
-                // normalCount++; 
+            if (latest.responseLevel === '1') {
+                level1Count++;
+                level1List.push(item);
+            }
+            if (latest.responseLevel === '2') {
+                level2Count++;
+                level2List.push(item);
+            }
+            if (latest.responseLevel === '3') {
+                level3Count++;
+                level3List.push(item);
             }
         });
 

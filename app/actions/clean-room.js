@@ -67,6 +67,8 @@ export async function saveCleanRoomData(prevState, formData) {
         'สสจ./สสอ.',
         'หน่วยงานภาครัฐ (อบจ/อบต./สนง.ต่างๆ)',
         'ศูนย์ดูแลผู้สูงอายุ',
+        'โรงเรียน',
+        'ศูนย์เด็กเล็ก',
     ]
 
     try {

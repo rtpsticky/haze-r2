@@ -141,7 +141,7 @@ export default function DashboardPage() {
         'โรงพยาบาลส่งเสริมสุขภาพตำบล', 'โรงพยาบาลเอกชน',
         'โรงพยาบาลสังกัดกระทรวงกลาโหม', 'โรงพยาบาลมหาวิทยาลัย',
         'สสจ./สสอ.', 'หน่วยงานภาครัฐ (อบจ/อบต./สนง.ต่างๆ)',
-        'ศูนย์ดูแลผู้สูงอายุ'
+        'ศูนย์ดูแลผู้สูงอายุ', 'โรงเรียน', 'ศูนย์เด็กเล็ก'
     ];
 
     const VULNERABLE_COLORS = [
@@ -488,7 +488,7 @@ export default function DashboardPage() {
                     <div className="px-4">
                         <h3 className="text-slate-500 font-semibold mb-6 flex items-center gap-2">
                             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            หน้ากากอนามัย
+                            หน้ากากอนามัยคงเหลือ
                         </h3>
                         <div className="text-center mb-6">
                             <div className="text-4xl font-bold text-blue-600">{stats.inventory?.totalStock?.toLocaleString()}</div>
@@ -508,6 +508,40 @@ export default function DashboardPage() {
                                     >
                                         {inventoryData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={COLORS.chart[index % COLORS.chart.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* PPE Stats */}
+                    <div className="px-4 pt-8 lg:pt-0">
+                        <h3 className="text-slate-500 font-semibold mb-6 flex items-center gap-2">
+                            <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                            หน้ากากอนามัยที่แจกแล้ว
+                        </h3>
+                        <div className="text-center mb-6">
+                            <div className="text-4xl font-bold text-orange-600">{ppeTotal.toLocaleString()}</div>
+                            <div className="text-sm text-slate-400 mt-1">แจกจ่ายแล้ว (ชิ้น)</div>
+                        </div>
+                        <div className="h-48">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={ppeChartData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={50}
+                                        outerRadius={70}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                        onClick={(data) => handlePPEClick(data.payload)}
+                                        cursor="pointer"
+                                    >
+                                        {ppeChartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={EXTENDED_COLORS[index % EXTENDED_COLORS.length]} />
                                         ))}
                                     </Pie>
                                     <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
@@ -550,39 +584,6 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    {/* PPE Stats */}
-                    <div className="px-4 pt-8 lg:pt-0">
-                        <h3 className="text-slate-500 font-semibold mb-6 flex items-center gap-2">
-                            <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                            แจกจ่าย PPE
-                        </h3>
-                        <div className="text-center mb-6">
-                            <div className="text-4xl font-bold text-orange-600">{ppeTotal.toLocaleString()}</div>
-                            <div className="text-sm text-slate-400 mt-1">แจกจ่ายแล้ว (ชิ้น)</div>
-                        </div>
-                        <div className="h-48">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={ppeChartData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={50}
-                                        outerRadius={70}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                        onClick={(data) => handlePPEClick(data.payload)}
-                                        cursor="pointer"
-                                    >
-                                        {ppeChartData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={EXTENDED_COLORS[index % EXTENDED_COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </div>
                 </div>
             </section >
 
