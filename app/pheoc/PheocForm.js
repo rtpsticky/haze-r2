@@ -48,6 +48,7 @@ export default function PheocForm({ initialData, onCancel, onSuccess, idPrefix =
                 setMainStatus('OPEN')
                 if (initialData.responseLevel === 'ระดับตอบโต้ 1') setSubStatusOpen('RESPONSE_1')
                 else if (initialData.responseLevel === 'ระดับตอบโต้ 2') setSubStatusOpen('RESPONSE_2')
+                else if (initialData.responseLevel === 'ระดับตอบโต้ 3') setSubStatusOpen('RESPONSE_3')
             } else if (initialData.status === 'ปิดศูนย์') {
                 setMainStatus('CLOSED')
             } else {
@@ -123,14 +124,21 @@ export default function PheocForm({ initialData, onCancel, onSuccess, idPrefix =
                                             <input type="radio" name="subStatusOpen" value="RESPONSE_1" checked={subStatusOpen === 'RESPONSE_1'} onChange={() => setSubStatusOpen('RESPONSE_1')} className="text-amber-600 focus:ring-amber-500" />
                                             <span className="font-semibold text-slate-800">ระดับตอบโต้ 1</span>
                                         </div>
-                                        <span className="text-xs text-slate-500 block pl-6">PM 2.5 75.1-150 µg/m³ (2 วัน)</span>
+                                        <span className="text-xs text-slate-500 block pl-6">PM 2.5 75.1-125 µg/m³ (ติดต่อกัน 2 วัน)</span>
                                     </label>
                                     <label className={`block p-3 rounded-lg border cursor-pointer hover:bg-white transition-colors ${subStatusOpen === 'RESPONSE_2' ? 'bg-white border-amber-500 shadow-sm' : 'border-amber-200 bg-amber-100/50'}`}>
                                         <div className="flex items-center gap-2 mb-1">
                                             <input type="radio" name="subStatusOpen" value="RESPONSE_2" checked={subStatusOpen === 'RESPONSE_2'} onChange={() => setSubStatusOpen('RESPONSE_2')} className="text-amber-600 focus:ring-amber-500" />
                                             <span className="font-semibold text-slate-800">ระดับตอบโต้ 2</span>
                                         </div>
-                                        <span className="text-xs text-slate-500 block pl-6">PM 2.5 {'>'} 150 µg/m³ (5 วัน)</span>
+                                        <span className="text-xs text-slate-500 block pl-6">PM 2.5 75.1-125 µg/m³ (ติดต่อกัน 5 วัน)</span>
+                                    </label>
+                                    <label className={`block p-3 rounded-lg border cursor-pointer hover:bg-white transition-colors ${subStatusOpen === 'RESPONSE_3' ? 'bg-white border-amber-500 shadow-sm' : 'border-amber-200 bg-amber-100/50'}`}>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <input type="radio" name="subStatusOpen" value="RESPONSE_3" checked={subStatusOpen === 'RESPONSE_3'} onChange={() => setSubStatusOpen('RESPONSE_3')} className="text-amber-600 focus:ring-amber-500" />
+                                            <span className="font-semibold text-slate-800">ระดับตอบโต้ 3</span>
+                                        </div>
+                                        <span className="text-xs text-slate-500 block pl-6">PM 2.5 {'>'} 150 µg/m³ (ติดต่อกันเกิน 10 วัน)</span>
                                     </label>
                                 </div>
                             )}

@@ -43,6 +43,9 @@ export async function getDashboardStats(filters = {}) {
         const allLocations = await prisma.location.findMany({
             include: {
                 pheocReports: {
+                    where: {
+                        recordedByRole: 'SSJ'
+                    },
                     orderBy: { reportDate: 'desc' },
                     take: 1
                 }
@@ -54,12 +57,18 @@ export async function getDashboardStats(filters = {}) {
 
         allLocations.forEach(loc => {
             const latest = loc.pheocReports[0];
-            const name = loc.provinceName;
+            const pName = loc.provinceName;
+            const dName = loc.districtName;
 
             if (latest) {
-                // Keep the absolute latest report for each province
-                if (!provinceLatestMap[name] || new Date(latest.reportDate) > new Date(provinceLatestMap[name].reportDate)) {
-                    provinceLatestMap[name] = latest;
+                const latestDate = new Date(latest.reportDate);
+                const currentStored = provinceLatestMap[pName];
+
+                if (!currentStored || latestDate > new Date(currentStored.reportDate)) {
+                    provinceLatestMap[pName] = {
+                        ...latest,
+                        districtName: dName
+                    };
                 }
             }
         });
@@ -85,23 +94,24 @@ export async function getDashboardStats(filters = {}) {
             if (latest.status === 'เฝ้าระวังปกติ') {
                 normalCount++;
                 normalList.push(item);
-            }
-            if (latest.status === 'เฝ้าระวังใกล้ชิด' || latest.status === 'เปิด PHEOC') {
+            } else if (latest.status === 'เฝ้าระวังใกล้ชิด') {
                 alertCount++;
                 alertList.push(item);
-            }
-
-            if (latest.responseLevel === '1') {
-                level1Count++;
-                level1List.push(item);
-            }
-            if (latest.responseLevel === '2') {
-                level2Count++;
-                level2List.push(item);
-            }
-            if (latest.responseLevel === '3') {
-                level3Count++;
-                level3List.push(item);
+            } else if (latest.status === 'เปิด PHEOC') {
+                // If Open PHEOC, it must be counted in one of the levels
+                if (latest.responseLevel === 'ระดับตอบโต้ 1') {
+                    level1Count++;
+                    level1List.push(item);
+                } else if (latest.responseLevel === 'ระดับตอบโต้ 2') {
+                    level2Count++;
+                    level2List.push(item);
+                } else if (latest.responseLevel === 'ระดับตอบโต้ 3') {
+                    level3Count++;
+                    level3List.push(item);
+                }
+                // Also count as Alert for the summary overview
+                alertCount++;
+                alertList.push(item);
             }
         });
 
@@ -213,7 +223,14 @@ export async function getDashboardStats(filters = {}) {
                     level1: [...new Set(level1List)],
                     level2: [...new Set(level2List)],
                     level3: [...new Set(level3List)]
-                }
+                },
+                latestByProvince: Object.keys(provinceLatestMap).map(name => ({
+                    province: name,
+                    district: provinceLatestMap[name].districtName,
+                    status: provinceLatestMap[name].status,
+                    responseLevel: provinceLatestMap[name].responseLevel,
+                    reportDate: provinceLatestMap[name].reportDate.toISOString()
+                }))
             },
             vulnerable: {
                 total: totalVulnerable,

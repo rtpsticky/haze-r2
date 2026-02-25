@@ -38,6 +38,7 @@ export async function savePheocReport(prevState, formData) {
         const subStatus = formData.get('subStatusOpen')
         if (subStatus === 'RESPONSE_1') responseLevel = 'ระดับตอบโต้ 1'
         else if (subStatus === 'RESPONSE_2') responseLevel = 'ระดับตอบโต้ 2'
+        else if (subStatus === 'RESPONSE_3') responseLevel = 'ระดับตอบโต้ 3'
     } else if (status === 'CLOSED') {
         dbStatus = 'ปิดศูนย์'
     }
@@ -81,6 +82,7 @@ export async function savePheocReport(prevState, formData) {
                 reportDate: new Date(reportDate),
                 status: dbStatus,
                 responseLevel: responseLevel,
+                recordedByRole: user.role,
             }
             if (pdfUrl) {
                 dataToUpdate.pdfUrl = pdfUrl
@@ -101,6 +103,7 @@ export async function savePheocReport(prevState, formData) {
                     responseLevel: responseLevel,
                     pdfUrl: pdfUrl,
                     locationId: user.locationId,
+                    recordedByRole: user.role,
                     recordedAt: new Date()
                 }
             })

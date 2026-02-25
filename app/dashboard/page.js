@@ -324,6 +324,7 @@ export default function DashboardPage() {
                         </div>
                     </div>
                 </div>
+
             </section>
 
             {/* Filter Section */}

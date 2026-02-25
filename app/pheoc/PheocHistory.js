@@ -56,7 +56,8 @@ export default function PheocHistory({ reports, onEdit, isAdmin }) {
                         <thead className="bg-slate-50">
                             <tr>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
-                                {isAdmin && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">จังหวัด</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">อำเภอ</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">สถานะ</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ระดับตอบโต้</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ไฟล์แนบ</th>
@@ -69,11 +70,12 @@ export default function PheocHistory({ reports, onEdit, isAdmin }) {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                         {new Date(report.reportDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                     </td>
-                                    {isAdmin && (
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                                            {report.location?.districtName || '-'}
-                                        </td>
-                                    )}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                        {report.location?.provinceName || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                        {report.location?.districtName || '-'}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
                                             ${report.status === 'เปิด PHEOC' ? 'bg-amber-100 text-amber-800' :

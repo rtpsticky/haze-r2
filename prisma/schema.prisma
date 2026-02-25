@@ -76,9 +76,10 @@ model MeasureLog {
 model PheocReport {
   id            Int      @id @default(autoincrement())
   reportDate    DateTime // วันที่รายงาน [cite: 38]
-  status        String // ยังไม่เปิด, เฝ้าระวังปกติ, เฝ้าระวังใกล้ชิด, เปิด PHEOC, ปิดศูนย์ [cite: 39-43, 46]
-  responseLevel String? // ระดับตอบโต้ 1-2 [cite: 44, 45]
-  pdfUrl        String? // ลิงก์แนบไฟล์เอกสาร PDF [cite: 47]
+  status          String // ยังไม่เปิด, เฝ้าระวังปกติ, เฝ้าระวังใกล้ชิด, เปิด PHEOC, ปิดศูนย์ [cite: 39-43, 46]
+  responseLevel   String? // ระดับตอบโต้ 1-2 [cite: 44, 45]
+  pdfUrl          String? // ลิงก์แนบไฟล์เอกสาร PDF [cite: 47]
+  recordedByRole  String? // บทบาทของผู้รายงาน (SSJ, SSO, etc.)
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])
