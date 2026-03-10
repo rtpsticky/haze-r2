@@ -199,3 +199,36 @@ export async function deleteVulnerableReport(dateStr, targetLocationId) {
         return { success: false, message: 'เกิดข้อผิดพลาดในการลบข้อมูล' }
     }
 }
+
+export async function getVulnerableExportData() {
+    const session = await getSession()
+    if (!session) {
+        return null
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { role: true, locationId: true }
+    })
+
+    if (!user) {
+        return null
+    }
+
+    let whereClause = {}
+    if (user.role === 'ADMIN') {
+        whereClause = {}
+    } else {
+        whereClause = { locationId: user.locationId }
+    }
+
+    const records = await prisma.vulnerableData.findMany({
+        where: whereClause,
+        orderBy: { recordDate: 'desc' },
+        include: {
+            location: true
+        }
+    })
+
+    return records
+}

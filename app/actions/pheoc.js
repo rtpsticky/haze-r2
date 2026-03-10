@@ -133,3 +133,36 @@ export async function deletePheocReport(id) {
         return { message: 'เกิดข้อผิดพลาดในการลบข้อมูล', success: false }
     }
 }
+
+export async function getPheocExportData() {
+    const session = await getSession()
+    if (!session) {
+        return null
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { role: true, locationId: true }
+    })
+
+    if (!user) {
+        return null
+    }
+
+    let whereClause = {}
+    if (user.role === 'ADMIN') {
+        whereClause = {}
+    } else {
+        whereClause = { locationId: user.locationId }
+    }
+
+    const reports = await prisma.pheocReport.findMany({
+        where: whereClause,
+        orderBy: { reportDate: 'desc' },
+        include: {
+            location: true
+        }
+    })
+
+    return reports
+}

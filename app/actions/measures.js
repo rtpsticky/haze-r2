@@ -89,3 +89,36 @@ export async function saveMeasures(prevState, formData) {
         return { message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' }
     }
 }
+
+export async function getMeasuresExportData() {
+    const session = await getSession()
+    if (!session) {
+        return null
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { role: true, locationId: true }
+    })
+
+    if (!user) {
+        return null
+    }
+
+    let whereClause = {}
+    if (user.role === 'ADMIN') {
+        whereClause = {}
+    } else {
+        whereClause = { locationId: user.locationId }
+    }
+
+    const measures = await prisma.measureLog.findMany({
+        where: whereClause,
+        orderBy: { createdAt: 'desc' },
+        include: {
+            location: true
+        }
+    })
+
+    return measures
+}

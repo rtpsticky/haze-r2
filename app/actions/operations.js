@@ -454,3 +454,48 @@ export async function saveOperationData(prevState, formData) {
         return { success: false, message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' }
     }
 }
+
+export async function getOperationsExportData() {
+    const session = await getSession()
+    if (!session) {
+        return null
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { role: true, locationId: true }
+    })
+
+    if (!user) {
+        return null
+    }
+
+    let whereClause = {}
+    if (user.role === 'ADMIN') {
+        whereClause = {}
+    } else {
+        whereClause = { locationId: user.locationId }
+    }
+
+    // Fetch operations, vulnerables, admin support
+    const [operations, localSupport, vulnerables] = await Promise.all([
+        prisma.operationLog.findMany({
+            where: whereClause,
+            include: { location: true },
+            orderBy: { recordDate: 'desc' },
+        }),
+        prisma.localAdminSupport.findMany({
+            where: whereClause,
+            include: { location: true },
+        }),
+        prisma.vulnerableData.findMany({
+            where: {
+                ...whereClause,
+                groupType: 'BEDRIDDEN_OP'
+            },
+            include: { location: true },
+        }),
+    ])
+
+    return { operations, localSupport, vulnerables }
+}

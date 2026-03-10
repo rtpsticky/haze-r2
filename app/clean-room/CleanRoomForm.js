@@ -5,6 +5,7 @@ import { saveCleanRoomData, getCleanRoomData, getCleanRoomHistory, deleteCleanRo
 import Link from 'next/link'
 import Modal from '@/app/pheoc/Modal'
 import CleanRoomTable from './CleanRoomTable'
+import ExportCleanRoomButton from './ExportCleanRoomButton'
 
 export default function CleanRoomForm({ user }) {
     const [state, formAction, isPending] = useActionState(saveCleanRoomData, { message: '', success: false })
@@ -186,18 +187,21 @@ export default function CleanRoomForm({ user }) {
         return (
             <div className="min-h-screen bg-slate-50 py-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="mb-8 flex items-center gap-4">
-                        <Link href="/" className="p-2 rounded-lg bg-white shadow-sm text-slate-500 hover:text-emerald-600 hover:shadow transition-all">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                            </svg>
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-800">ห้องปลอดฝุ่น (Clean Room)</h1>
-                            <p className="text-slate-500 text-sm">
-                                {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
-                            </p>
+                    <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <Link href="/" className="p-2 rounded-lg bg-white shadow-sm text-slate-500 hover:text-emerald-600 hover:shadow transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                                </svg>
+                            </Link>
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-800">ห้องปลอดฝุ่น (Clean Room)</h1>
+                                <p className="text-slate-500 text-sm">
+                                    {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
+                                </p>
+                            </div>
                         </div>
+                        <ExportCleanRoomButton />
                     </div>
 
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-800 mb-8">
@@ -286,18 +290,21 @@ export default function CleanRoomForm({ user }) {
     return (
         <div className="min-h-screen bg-slate-50 py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="mb-8 flex items-center gap-4">
-                    <Link href="/" className="p-2 rounded-lg bg-white shadow-sm text-slate-500 hover:text-emerald-600 hover:shadow transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                        </svg>
-                    </Link>
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800">ห้องปลอดฝุ่น (Clean Room)</h1>
-                        <p className="text-slate-500 text-sm">
-                            {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
-                        </p>
+                <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <Link href="/" className="p-2 rounded-lg bg-white shadow-sm text-slate-500 hover:text-emerald-600 hover:shadow transition-all">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                            </svg>
+                        </Link>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">ห้องปลอดฝุ่น (Clean Room)</h1>
+                            <p className="text-slate-500 text-sm">
+                                {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
+                            </p>
+                        </div>
                     </div>
+                    <ExportCleanRoomButton />
                 </div>
 
                 <form action={formAction} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-8">
