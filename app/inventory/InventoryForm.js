@@ -86,6 +86,9 @@ export default function InventoryForm({ user }) {
                                 <p className="text-slate-500 text-sm">
                                     {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
                                 </p>
+                                <p className="mt-1 text-sm font-semibold text-rose-600">
+                                    * บันทึกเฉพาะที่หน่วยงานตนเองถือครอง ไม่นับรวมหน่วยงานภายใต้กำกับ
+                                </p>
                             </div>
                         </div>
                         <ExportInventoryButton role={user?.role} />
@@ -113,6 +116,9 @@ export default function InventoryForm({ user }) {
                             <h1 className="text-2xl font-bold text-slate-800">เวชภัณฑ์คงคลัง ณ วันที่รายงาน</h1>
                             <p className="text-slate-500 text-sm">
                                 {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
+                            </p>
+                            <p className="mt-1 text-sm font-semibold text-rose-600">
+                                * บันทึกเฉพาะที่หน่วยงานตนเองถือครอง ไม่นับรวมหน่วยงานภายใต้กำกับ
                             </p>
                         </div>
                     </div>

@@ -51,6 +51,9 @@ export default function EditInventoryModal({ isOpen, onClose, date, initialRecor
                                 <h3 className="text-xl font-semibold leading-6 text-slate-900" id="modal-title">
                                     {isReadOnly ? 'รายละเอียด' : 'แก้ไข'}ข้อมูลวันที่ {new Date(date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                 </h3>
+                                <p className="mt-2 text-sm font-semibold text-rose-600">
+                                    * บันทึกเฉพาะที่หน่วยงานตนเองถือครอง ไม่นับรวมหน่วยงานภายใต้กำกับ
+                                </p>
 
                                 <form action={formAction} className="mt-6 space-y-6">
                                     <input type="hidden" name="recordDate" value={date} />
