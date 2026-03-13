@@ -66,7 +66,7 @@ export default function InventoryForm({ user }) {
         )
     }
 
-    const canEdit = user?.role === 'SSJ' || user?.role === 'SSO' || user?.role === 'ADMIN'
+    const canEdit = !!user?.role
 
     // If fetch success/submit success handled above...
 

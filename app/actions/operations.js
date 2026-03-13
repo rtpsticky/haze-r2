@@ -21,7 +21,7 @@ export async function getOperationData(dateString, requestedLocationId) {
         locationId = parseInt(requestedLocationId)
 
         // Permission Check
-        if (user.role !== 'ADMIN' && locationId !== user.locationId) {
+        if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && locationId !== user.locationId) {
             return { success: false, error: 'Unauthorized location access' }
         }
 
@@ -98,7 +98,7 @@ export async function getOperationHistory(locationId) {
     const id = parseInt(locationId)
 
     // Permission Check
-    if (user.role !== 'ADMIN' && id !== user.locationId) {
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && id !== user.locationId) {
         return { success: false, error: 'Unauthorized location access' }
     }
 
@@ -149,7 +149,7 @@ export async function deleteOperationData(dateString, locationId) {
     const id = parseInt(locationId)
 
     // Permission Check
-    if (user.role !== 'ADMIN' && id !== user.locationId) {
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && id !== user.locationId) {
         return { success: false, message: 'Unauthorized location delete' }
     }
 
@@ -184,9 +184,9 @@ export async function saveOperationData(prevState, formData) {
 
     if (!user) return { success: false, message: 'User not found' }
 
-    // Only HOSPTIAL, PCU, SSO, SSJ (and ADMIN) can save operation data
-    if (user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'SSO' && user.role !== 'SSJ' && user.role !== 'ADMIN') {
-        return { success: false, message: 'สิทธิ์การบันทึกข้อมูลสำหรับ รพ., รพ.สต., สสอ. และ สสจ. เท่านั้น' }
+    // All roles can save operation data for their location
+    if (!user.role) {
+        return { success: false, message: 'Unauthorized: User role not found' }
     }
 
     if (!user) return { success: false, message: 'User not found' }
@@ -471,7 +471,7 @@ export async function getOperationsExportData() {
     }
 
     let whereClause = {}
-    if (user.role === 'ADMIN') {
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
     } else {
         whereClause = { locationId: user.locationId }

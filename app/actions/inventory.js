@@ -48,11 +48,6 @@ export async function saveInventoryData(prevState, formData) {
         return { message: 'User not found', success: false }
     }
 
-    // Only SSJ, SSO (and ADMIN) can save inventory data
-    if (user.role !== 'SSJ' && user.role !== 'SSO' && user.role !== 'ADMIN') {
-        return { message: 'สิทธิ์การบันทึกข้อมูลสำหรับ สสจ. และ สสอ. เท่านั้น', success: false }
-    }
-
     const recordDate = new Date(formData.get('recordDate'))
     recordDate.setHours(0, 0, 0, 0)
 
@@ -114,7 +109,7 @@ export async function getInventoryHistory() {
 
     if (!user) return []
 
-    const where = user.role === 'ADMIN' ? {} : { locationId: user.locationId }
+    const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
 
     const data = await prisma.inventoryLog.findMany({
         where,
@@ -169,7 +164,7 @@ export async function deleteInventoryReport(dateStr, targetLocationId) {
     // Determine location to delete
     let deleteLocationId = user.locationId
 
-    if (targetLocationId && user.role === 'ADMIN') {
+    if (targetLocationId && (user.role === 'ADMIN' || user.role === 'HEALTH_REGION')) {
         deleteLocationId = targetLocationId
     }
 
@@ -207,7 +202,7 @@ export async function getInventoryExportData() {
     }
 
     let whereClause = {}
-    if (user.role === 'ADMIN') {
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
     } else {
         whereClause = { locationId: user.locationId }

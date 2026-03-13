@@ -21,13 +21,16 @@ export default async function Page() {
     }
 
     const user = await getUser(session.userId)
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        redirect('/')
+    }
     const history = await getVulnerableHistory()
 
     return (
         <>
             <VulnerableForm user={user} />
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-                <VulnerableHistory history={history} isAdmin={user?.role === 'ADMIN'} userRole={user?.role} />
+                <VulnerableHistory history={history} isAdmin={user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION'} userRole={user?.role} />
             </div>
         </>
     )

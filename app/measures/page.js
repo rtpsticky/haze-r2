@@ -41,7 +41,7 @@ export default async function MeasuresPage() {
         redirect('/login')
     }
 
-    if (user.role !== 'SSJ' && user.role !== 'ADMIN') {
+    if (user.role !== 'SSJ' && user.role !== 'SSO' && user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
         redirect('/')
     }
 

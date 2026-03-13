@@ -23,7 +23,7 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
         if (user) locationIdToUse = user.locationId
     } else {
         // Enforce permission for requested location
-        if (user?.role !== 'ADMIN' && parseInt(locationIdToUse) !== user.locationId) {
+        if (user?.role !== 'ADMIN' && user?.role !== 'HEALTH_REGION' && parseInt(locationIdToUse) !== user.locationId) {
             return { success: false, error: 'Unauthorized location access' }
         }
     }
@@ -83,7 +83,7 @@ export async function getActiveCareHistory(locationId) {
     const id = parseInt(locationId)
 
     // Permission Check
-    if (user.role !== 'ADMIN' && id !== user.locationId) {
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && id !== user.locationId) {
         return { success: false, error: 'Unauthorized location access' }
     }
 
@@ -128,7 +128,7 @@ export async function deleteActiveCareData(dateString, locationId) {
     const id = parseInt(locationId)
 
     // Permission Check
-    if (user.role !== 'ADMIN' && id !== user.locationId) {
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && id !== user.locationId) {
         return { success: false, message: 'Unauthorized location delete' }
     }
 
@@ -264,7 +264,7 @@ export async function getActiveCareExportData() {
     if (!user) return null
 
     let whereClause = {}
-    if (user.role !== 'ADMIN') {
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
         whereClause = { locationId: user.locationId }
     }
 

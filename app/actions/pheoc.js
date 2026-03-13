@@ -17,8 +17,8 @@ export async function savePheocReport(prevState, formData) {
         where: { id: session.userId },
     })
 
-    if (!user) {
-        return { message: 'User not found', success: false }
+    if (!user || !['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        return { message: 'Unauthorized: Only SSJ, ADMIN, or HEALTH_REGION can manage PHEOC', success: false }
     }
 
     const id = formData.get('id')
@@ -122,6 +122,15 @@ export async function deletePheocReport(id) {
         return { message: 'Unauthorized', success: false }
     }
 
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { role: true }
+    })
+
+    if (!user || !['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        return { message: 'Forbidden: Only authorized roles can delete reports', success: false }
+    }
+
     try {
         await prisma.pheocReport.delete({
             where: { id: parseInt(id) }
@@ -150,10 +159,12 @@ export async function getPheocExportData() {
     }
 
     let whereClause = {}
-    if (user.role === 'ADMIN') {
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
-    } else {
+    } else if (user.role === 'SSJ') {
         whereClause = { locationId: user.locationId }
+    } else {
+        return null // Should not reach here due to page level check, but for safety
     }
 
     const reports = await prisma.pheocReport.findMany({

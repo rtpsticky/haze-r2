@@ -64,7 +64,7 @@ export default function IncidentsForm({ user }) {
                 if (res.success && res.data.location) {
                     const loc = res.data.location
                     setCurrentLocationId(loc.id)
-                    if (user?.role === 'ADMIN') {
+                    if (user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') {
                         setIsProvinceLocked(false)
                     } else {
                         setIsProvinceLocked(true)
