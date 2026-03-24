@@ -18,12 +18,12 @@ export default async function PheocPage() {
         select: { locationId: true, role: true }
     })
 
-    if (!user) {
-        redirect('/login')
+    if (!user || !['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        redirect('/')
     }
 
     // Fetch history
-    const where = user.role === 'ADMIN' ? {} : { locationId: user.locationId }
+    const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
 
     const reports = await prisma.pheocReport.findMany({
         where,
@@ -52,7 +52,7 @@ export default async function PheocPage() {
                     <ExportPheocButton role={user.role} />
                 </div>
 
-                <PheocManager reports={reports} isAdmin={user.role === 'ADMIN'} />
+                <PheocManager reports={reports} isAdmin={user.role === 'ADMIN' || user.role === 'HEALTH_REGION'} />
             </div>
         </div>
     )

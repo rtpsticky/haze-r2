@@ -21,6 +21,9 @@ export default async function IncidentsPage() {
     }
 
     const user = await getUser(session.userId)
+    if (!user || !['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        redirect('/')
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 py-8">

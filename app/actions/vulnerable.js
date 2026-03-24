@@ -12,7 +12,7 @@ export async function getVulnerableData(dateStr) {
         where: { id: session.userId },
     })
 
-    if (!user) return []
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) return []
 
     const targetDate = new Date(dateStr)
     // Create Date range for the whole day to be safe, or just match the exact date stored if we store specific time.
@@ -53,9 +53,9 @@ export async function saveVulnerableData(prevState, formData) {
         return { message: 'User not found', success: false }
     }
 
-    // Only SSO, HOSPITAL, PCU (and ADMIN for override) can save this data
-    if (user.role !== 'SSO' && user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'ADMIN') {
-        return { message: 'สิทธิ์การบันทึกข้อมูลสำหรับ สสอ., โรงพยาบาล และ รพ.สต. เท่านั้น', success: false }
+    // Only SSO (and ADMIN for override) can save this data
+    if (user.role !== 'SSO' && user.role !== 'ADMIN') {
+        return { message: 'สิทธิ์การบันทึกข้อมูลสำหรับ สสอ. เท่านั้น', success: false }
     }
 
     const recordDate = new Date(formData.get('recordDate'))
@@ -121,9 +121,9 @@ export async function getVulnerableHistory() {
         select: { id: true, locationId: true, role: true }
     })
 
-    if (!user) return []
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) return []
 
-    const where = user.role === 'ADMIN' ? {} : { locationId: user.locationId }
+    const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
 
     const data = await prisma.vulnerableData.findMany({
         where,
@@ -167,7 +167,9 @@ export async function deleteVulnerableReport(dateStr, targetLocationId) {
         select: { id: true, locationId: true, role: true }
     })
 
-    if (!user) return { success: false, message: 'User not found' }
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        return { success: false, message: 'Forbidden: Only authorized roles can delete reports' }
+    }
 
     const targetDate = new Date(dateStr)
     const startOfDay = new Date(targetDate)
@@ -178,7 +180,7 @@ export async function deleteVulnerableReport(dateStr, targetLocationId) {
     // Determine location to delete
     let deleteLocationId = user.locationId
 
-    if (targetLocationId && user.role === 'ADMIN') {
+    if (targetLocationId && (user.role === 'ADMIN' || user.role === 'HEALTH_REGION')) {
         deleteLocationId = targetLocationId
     }
 
@@ -211,12 +213,12 @@ export async function getVulnerableExportData() {
         select: { role: true, locationId: true }
     })
 
-    if (!user) {
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
         return null
     }
 
     let whereClause = {}
-    if (user.role === 'ADMIN') {
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
     } else {
         whereClause = { locationId: user.locationId }

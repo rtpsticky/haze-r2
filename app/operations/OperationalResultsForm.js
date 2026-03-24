@@ -97,7 +97,7 @@ export default function OperationalResultsForm({ user }) {
                 if (res.success && res.data.location) {
                     const loc = res.data.location
                     setCurrentLocationId(loc.id)
-                    if (user?.role === 'ADMIN') {
+                    if (user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') {
                         setIsProvinceLocked(false)
                     } else {
                         setIsProvinceLocked(true)
@@ -293,7 +293,7 @@ export default function OperationalResultsForm({ user }) {
     const handlePPEChange = (group, item, val) => setFormData(p => ({ ...p, [group]: { ...p[group], [item]: val } }))
     const handleChange = (field, val) => setFormData(p => ({ ...p, [field]: val }))
 
-    const canEdit = ['HOSPITAL', 'PCU', 'SSO', 'SSJ', 'ADMIN'].includes(user?.role)
+    const canEdit = !!user?.role
 
     return (
         <div className="relative font-sarabun text-slate-800 animate-fade-in-up">

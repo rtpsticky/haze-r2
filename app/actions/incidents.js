@@ -20,17 +20,8 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
         if (user) locationIdToUse = user.locationId
     } else {
         // Permission Check
-        const locationIdAsInt = parseInt(locationIdToUse)
-        if (user?.role !== 'ADMIN' && locationIdAsInt !== user.locationId) {
-            // Check if user is SSJ and accessing a location in their province
-            if (user?.role === 'SSJ') {
-                const targetLoc = await prisma.location.findUnique({ where: { id: locationIdAsInt } })
-                if (targetLoc?.provinceName !== user.location?.provinceName) {
-                    return { success: false, error: 'Unauthorized location access' }
-                }
-            } else {
-                return { success: false, error: 'Unauthorized location access' }
-            }
+        if (user?.role !== 'ADMIN' && parseInt(locationIdToUse) !== user.locationId) {
+            return { success: false, error: 'Unauthorized location access' }
         }
     }
 
@@ -96,7 +87,10 @@ export async function saveIncident(prevState, formData) {
     }
 
     // Permission Check
-    if (user.role !== 'ADMIN' && locationId !== user.locationId) {
+    if (!['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        return { success: false, message: 'Unauthorized: Only SSJ, ADMIN, or HEALTH_REGION can report incidents' }
+    }
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && locationId !== user.locationId) {
         return { success: false, message: 'Unauthorized location save' }
     }
 
@@ -147,7 +141,10 @@ export async function updateIncident(prevState, formData) {
     if (!existing) return { success: false, message: 'Incident not found' }
 
     // Permission Check
-    if (user.role !== 'ADMIN' && existing.locationId !== user.locationId) {
+    if (!['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        return { success: false, message: 'Forbidden' }
+    }
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && existing.locationId !== user.locationId) {
         return { success: false, message: 'Unauthorized update' }
     }
 
@@ -228,7 +225,10 @@ export async function deleteIncident(id) {
     if (!existing) return { success: false, message: 'Incident not found' }
 
     // Permission Check
-    if (user.role !== 'ADMIN' && existing.locationId !== user.locationId) {
+    if (!['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        return { success: false, message: 'Forbidden' }
+    }
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && existing.locationId !== user.locationId) {
         return { success: false, message: 'Unauthorized delete' }
     }
 
@@ -256,7 +256,10 @@ export async function getIncidentsExportData() {
     if (!user) return null
 
     let whereClause = {}
-    if (user.role !== 'ADMIN') {
+    if (!['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+        return null
+    }
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
         whereClause = { locationId: user.locationId }
     }
 

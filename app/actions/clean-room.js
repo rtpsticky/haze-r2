@@ -48,9 +48,9 @@ export async function saveCleanRoomData(prevState, formData) {
         return { message: 'User not found', success: false }
     }
 
-    // Only SSJ, SSO (and ADMIN) can save clean room data
-    if (user.role !== 'SSJ' && user.role !== 'SSO' && user.role !== 'ADMIN') {
-        return { message: 'สิทธิ์การบันทึกข้อมูลสำหรับ สสจ. และ สสอ. เท่านั้น', success: false }
+    // All roles can save clean room data for their location
+    if (!user.role) {
+        return { message: 'Unauthorized: User role not found', success: false }
     }
 
     const recordDate = new Date(formData.get('recordDate'))
@@ -142,7 +142,7 @@ export async function getCleanRoomHistory() {
 
     if (!user) return []
 
-    const where = user.role === 'ADMIN' ? {} : { locationId: user.locationId }
+    const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
 
     const data = await prisma.cleanRoomReport.findMany({
         where,
@@ -204,7 +204,7 @@ export async function deleteCleanRoomReport(dateStr, targetLocationId) {
         // Determine location to delete
         let deleteLocationId = user.locationId
 
-        if (targetLocationId && user.role === 'ADMIN') {
+        if (targetLocationId && (user.role === 'ADMIN' || user.role === 'HEALTH_REGION')) {
             deleteLocationId = targetLocationId
         }
 
@@ -239,7 +239,7 @@ export async function getCleanRoomExportData() {
     }
 
     let whereClause = {}
-    if (user.role === 'ADMIN') {
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
     } else {
         whereClause = { locationId: user.locationId }

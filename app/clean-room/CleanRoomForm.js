@@ -179,7 +179,7 @@ export default function CleanRoomForm({ user }) {
         )
     }
 
-    const canEdit = user?.role === 'SSJ' || user?.role === 'SSO' || user?.role === 'ADMIN'
+    const canEdit = !!user?.role
 
     // If fetch success/submit success handled above...
 
@@ -237,7 +237,7 @@ export default function CleanRoomForm({ user }) {
                                     <thead className="bg-slate-50">
                                         <tr>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
-                                            {user?.role === 'ADMIN' && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
+                                            {(user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
                                             <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">จำนวนสถานที่</th>
                                             <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">เป้าหมาย (ห้อง)</th>
                                             <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">ผ่านมาตรฐาน (ห้อง)</th>
@@ -261,7 +261,7 @@ export default function CleanRoomForm({ user }) {
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                                                         {new Date(record.recordDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                                     </td>
-                                                    {user?.role === 'ADMIN' && (
+                                                    {(user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && (
                                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                             {record.locationName || '-'}
                                                         </td>
@@ -353,7 +353,7 @@ export default function CleanRoomForm({ user }) {
                                 <thead className="bg-slate-50">
                                     <tr>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
-                                        {user?.role === 'ADMIN' && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
+                                        {(user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">จำนวนสถานที่</th>
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">เป้าหมาย (ห้อง)</th>
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">ผ่านมาตรฐาน (ห้อง)</th>
@@ -377,7 +377,7 @@ export default function CleanRoomForm({ user }) {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                                                     {new Date(record.recordDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                                 </td>
-                                                {user?.role === 'ADMIN' && (
+                                                {(user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && (
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                                                         {record.locationName || '-'}
                                                     </td>
@@ -388,7 +388,7 @@ export default function CleanRoomForm({ user }) {
                                                     {record.totalPassed}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                    {(user?.role !== 'ADMIN' || user?.locationId === record.locationId) && (
+                                                    {(user?.role !== 'ADMIN' && user?.role !== 'HEALTH_REGION' || user?.locationId === record.locationId) && (
                                                         <button onClick={() => handleEdit(record)} className="text-emerald-600 hover:text-emerald-900 mr-4">
                                                             {canEdit ? 'แก้ไข' : 'ดูรายละเอียด'}
                                                         </button>
