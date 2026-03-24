@@ -8,43 +8,74 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
     const session = await getSession()
     if (!session) return { success: false, error: 'Unauthorized' }
 
-    let locationIdToUse = requestedLocationId
-
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
         select: { locationId: true, role: true, location: true }
     })
 
-    // If no specific location requested, default to user's home location
-    if (!locationIdToUse) {
-        if (user) locationIdToUse = user.locationId
-    } else {
-        // Permission Check
-        if (user?.role !== 'ADMIN' && parseInt(locationIdToUse) !== user.locationId) {
-            return { success: false, error: 'Unauthorized location access' }
-        }
-    }
-
-    if (!locationIdToUse) return { success: false, error: 'Location not determined' }
-
-    const locationId = parseInt(locationIdToUse)
     const date = new Date(dateString)
 
     try {
-        const [incidents, location] = await Promise.all([
-            prisma.staffIncident.findMany({
-                where: {
-                    locationId: locationId,
-                    recordDate: date
-                },
-                orderBy: {
-                    id: 'desc'
+        let incidents = []
+        let location = null
+
+        if (user?.role === 'SSJ') {
+            if (requestedLocationId) {
+                const requestedLoc = await prisma.location.findUnique({ where: { id: parseInt(requestedLocationId) } })
+                if (requestedLoc && requestedLoc.provinceName === user.location.provinceName) {
+                    incidents = await prisma.staffIncident.findMany({
+                        where: { locationId: parseInt(requestedLocationId), recordDate: date },
+                        orderBy: { id: 'desc' }
+                    })
+                    location = requestedLoc
+                } else {
+                    incidents = await prisma.staffIncident.findMany({
+                        where: { location: { provinceName: user.location.provinceName }, recordDate: date },
+                        orderBy: { id: 'desc' }
+                    })
+                    location = user.location
                 }
-            }),
-            prisma.location.findUnique({
-                where: { id: locationId }
+            } else {
+                incidents = await prisma.staffIncident.findMany({
+                    where: { location: { provinceName: user.location.provinceName }, recordDate: date },
+                    orderBy: { id: 'desc' }
+                })
+                location = user.location
+            }
+        } else if (user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') {
+            if (requestedLocationId) {
+                const requestedLoc = await prisma.location.findUnique({ where: { id: parseInt(requestedLocationId) } })
+                if (requestedLoc) {
+                    incidents = await prisma.staffIncident.findMany({
+                        where: { locationId: parseInt(requestedLocationId), recordDate: date },
+                        orderBy: { id: 'desc' }
+                    })
+                    location = requestedLoc
+                } else {
+                    incidents = await prisma.staffIncident.findMany({
+                        where: { recordDate: date },
+                        orderBy: { id: 'desc' }
+                    })
+                    location = user.location
+                }
+            } else {
+                incidents = await prisma.staffIncident.findMany({
+                    where: { recordDate: date },
+                    orderBy: { id: 'desc' }
+                })
+                location = user.location
+            }
+        } else {
+            const locationIdToUse = requestedLocationId || user.locationId
+            if (parseInt(locationIdToUse) !== user.locationId) {
+                return { success: false, error: 'Unauthorized location access' }
+            }
+            incidents = await prisma.staffIncident.findMany({
+                where: { locationId: parseInt(locationIdToUse), recordDate: date },
+                orderBy: { id: 'desc' }
             })
-        ])
+            location = await prisma.location.findUnique({ where: { id: parseInt(locationIdToUse) } })
+        }
 
         return {
             success: true,
@@ -243,7 +274,14 @@ export async function getIncidentsExportData() {
     if (!['SSJ', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'PCU', 'RPS'].includes(user.role)) {
         return null
     }
-    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
+    
+    if (user.role === 'SSJ') {
+        const userWithLocation = await prisma.user.findUnique({
+            where: { id: session.userId },
+            include: { location: true }
+        })
+        whereClause = { location: { provinceName: userWithLocation.location.provinceName } }
+    } else if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
         whereClause = { locationId: user.locationId }
     }
 

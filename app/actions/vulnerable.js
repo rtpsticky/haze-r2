@@ -12,7 +12,7 @@ export async function getVulnerableData(dateStr) {
         where: { id: session.userId },
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS'].includes(user.role)) return []
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
 
     const targetDate = new Date(dateStr)
     // Create Date range for the whole day to be safe, or just match the exact date stored if we store specific time.
@@ -54,7 +54,7 @@ export async function saveVulnerableData(prevState, formData) {
     }
 
     // Only authorized roles can save this data
-    if (!['SSO', 'ADMIN', 'HOSPITAL', 'RPS'].includes(user.role)) {
+    if (!['SSO', 'ADMIN', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         return { message: 'ไม่มีสิทธิ์ในการบันทึกข้อมูล', success: false }
     }
 
@@ -121,7 +121,7 @@ export async function getVulnerableHistory() {
         select: { id: true, locationId: true, role: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS'].includes(user.role)) return []
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
 
     const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
 
@@ -167,7 +167,7 @@ export async function deleteVulnerableReport(dateStr, targetLocationId) {
         select: { id: true, locationId: true, role: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS'].includes(user.role)) {
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         return { success: false, message: 'Forbidden: Only authorized roles can delete reports' }
     }
 
@@ -213,7 +213,7 @@ export async function getVulnerableExportData() {
         select: { role: true, locationId: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS'].includes(user.role)) {
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         return null
     }
 

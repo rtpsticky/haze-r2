@@ -68,7 +68,7 @@ export default function VulnerablePage({ user }) {
         )
     }
 
-    const canEdit = ['SSO', 'ADMIN', 'HOSPITAL', 'RPS'].includes(user?.role)
+    const canEdit = ['SSO', 'ADMIN', 'HOSPITAL', 'RPS', 'PCU'].includes(user?.role)
 
     // If fetch success/submit success handled above...
 
