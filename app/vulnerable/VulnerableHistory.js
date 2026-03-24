@@ -45,7 +45,8 @@ export default function VulnerableHistory({ history, isAdmin, userRole }) {
         )
     }
 
-    const canEdit = ['SSO', 'ADMIN'].includes(userRole)
+    const canEdit = ['SSO', 'ADMIN', 'HOSPITAL', 'RPS'].includes(userRole)
+    const canDelete = ['SSO', 'ADMIN', 'HOSPITAL', 'RPS'].includes(userRole)
 
     return (
         <>

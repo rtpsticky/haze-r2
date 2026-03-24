@@ -81,15 +81,10 @@ export async function saveIncident(prevState, formData) {
         select: { locationId: true, role: true }
     })
 
-    // Only HOSPITAL and PCU (and ADMIN) can save incidents
-    if (user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'ADMIN') {
+    if (!['HOSPITAL', 'PCU', 'RPS', 'ADMIN'].includes(user.role)) {
         return { success: false, message: 'สิทธิ์การบันทึกข้อมูลสำหรับ โรงพยาบาล และ รพ.สต. เท่านั้น' }
     }
 
-    // Permission Check
-    if (!['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
-        return { success: false, message: 'Unauthorized: Only SSJ, ADMIN, or HEALTH_REGION can report incidents' }
-    }
     if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && locationId !== user.locationId) {
         return { success: false, message: 'Unauthorized location save' }
     }
@@ -132,7 +127,7 @@ export async function updateIncident(prevState, formData) {
         select: { locationId: true, role: true }
     })
 
-    if (user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'ADMIN') {
+    if (!['HOSPITAL', 'PCU', 'RPS', 'ADMIN'].includes(user.role)) {
         return { success: false, message: 'สิทธิ์การแก้ไขข้อมูลสำหรับ โรงพยาบาล และ รพ.สต. เท่านั้น' }
     }
 
@@ -140,10 +135,6 @@ export async function updateIncident(prevState, formData) {
     const existing = await prisma.staffIncident.findUnique({ where: { id } })
     if (!existing) return { success: false, message: 'Incident not found' }
 
-    // Permission Check
-    if (!['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
-        return { success: false, message: 'Forbidden' }
-    }
     if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && existing.locationId !== user.locationId) {
         return { success: false, message: 'Unauthorized update' }
     }
@@ -213,10 +204,7 @@ export async function deleteIncident(id) {
         select: { locationId: true, role: true }
     })
 
-    if (user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'ADMIN') {
-        // Allow ADMIN to delete approved, but if it's SSJ, wait SSJ is not allowed to delete initially.
-        // Actually, in the UI ADMIN has delete button.
-        // What about SSJ deleting? UI only shows delete for ADMIN if approved, and HOSPITAL/PCU/ADMIN if not approved.
+    if (!['HOSPITAL', 'PCU', 'RPS', 'ADMIN'].includes(user.role)) {
         return { success: false, message: 'สิทธิ์การลบข้อมูลสำหรับ โรงพยาบาล และ รพ.สต. เท่านั้น' }
     }
 
@@ -224,10 +212,6 @@ export async function deleteIncident(id) {
     const existing = await prisma.staffIncident.findUnique({ where: { id } })
     if (!existing) return { success: false, message: 'Incident not found' }
 
-    // Permission Check
-    if (!['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
-        return { success: false, message: 'Forbidden' }
-    }
     if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && existing.locationId !== user.locationId) {
         return { success: false, message: 'Unauthorized delete' }
     }
@@ -256,7 +240,7 @@ export async function getIncidentsExportData() {
     if (!user) return null
 
     let whereClause = {}
-    if (!['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+    if (!['SSJ', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'PCU', 'RPS'].includes(user.role)) {
         return null
     }
     if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {

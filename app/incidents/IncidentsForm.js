@@ -296,8 +296,8 @@ export default function IncidentsForm({ user }) {
                     </div>
                 </div>
 
-                {/* Create Form - Only for Hospital and PCU (and Admin) */}
-                {(user?.role === 'HOSPITAL' || user?.role === 'PCU' || user?.role === 'ADMIN') ? (
+                {/* Create Form - Only for Hospital and PCU/RPS (and Admin) */}
+                {(['HOSPITAL', 'PCU', 'RPS', 'ADMIN'].includes(user?.role)) ? (
                     <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-6">
                         <div className="border-b border-slate-100 pb-4 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-red-500"></span>
@@ -395,7 +395,7 @@ export default function IncidentsForm({ user }) {
                                                     {!incident.isApproved && (user?.role === 'SSJ' || user?.role === 'ADMIN') && (
                                                         <button onClick={() => handleApprove(incident.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-xs transition-colors shadow-sm">อนุมัติ</button>
                                                     )}
-                                                    {(user?.role === 'HOSPITAL' || user?.role === 'PCU' || user?.role === 'ADMIN') && !incident.isApproved && (
+                                                    {(['HOSPITAL', 'PCU', 'RPS', 'ADMIN'].includes(user?.role)) && !incident.isApproved && (
                                                         <>
                                                             <button onClick={() => { setEditingIncident(incident); setShowEditModal(true) }} className="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors">แก้ไข</button>
                                                             <button onClick={() => handleDelete(incident.id)} className="text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-colors">ลบ</button>

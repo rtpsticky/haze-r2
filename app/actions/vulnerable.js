@@ -12,7 +12,7 @@ export async function getVulnerableData(dateStr) {
         where: { id: session.userId },
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) return []
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS'].includes(user.role)) return []
 
     const targetDate = new Date(dateStr)
     // Create Date range for the whole day to be safe, or just match the exact date stored if we store specific time.
@@ -53,9 +53,9 @@ export async function saveVulnerableData(prevState, formData) {
         return { message: 'User not found', success: false }
     }
 
-    // Only SSO (and ADMIN for override) can save this data
-    if (user.role !== 'SSO' && user.role !== 'ADMIN') {
-        return { message: 'สิทธิ์การบันทึกข้อมูลสำหรับ สสอ. เท่านั้น', success: false }
+    // Only authorized roles can save this data
+    if (!['SSO', 'ADMIN', 'HOSPITAL', 'RPS'].includes(user.role)) {
+        return { message: 'ไม่มีสิทธิ์ในการบันทึกข้อมูล', success: false }
     }
 
     const recordDate = new Date(formData.get('recordDate'))
@@ -121,7 +121,7 @@ export async function getVulnerableHistory() {
         select: { id: true, locationId: true, role: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) return []
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS'].includes(user.role)) return []
 
     const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
 
@@ -167,7 +167,7 @@ export async function deleteVulnerableReport(dateStr, targetLocationId) {
         select: { id: true, locationId: true, role: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS'].includes(user.role)) {
         return { success: false, message: 'Forbidden: Only authorized roles can delete reports' }
     }
 
@@ -213,7 +213,7 @@ export async function getVulnerableExportData() {
         select: { role: true, locationId: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS'].includes(user.role)) {
         return null
     }
 

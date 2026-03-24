@@ -21,7 +21,7 @@ export default async function IncidentsPage() {
     }
 
     const user = await getUser(session.userId)
-    if (!user || !['SSJ', 'ADMIN', 'HEALTH_REGION'].includes(user.role)) {
+    if (!user || !['SSJ', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         redirect('/')
     }
 
