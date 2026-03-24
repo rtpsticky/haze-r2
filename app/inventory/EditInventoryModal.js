@@ -1,34 +1,32 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useActionState } from 'react'
-import { saveInventoryData } from '@/app/actions/inventory'
+import { updateInventoryRecords } from '@/app/actions/inventory'
 import InventoryInputs, { items } from './InventoryInputs'
 
 export default function EditInventoryModal({ isOpen, onClose, date, initialRecords, isReadOnly = false }) {
-    const [state, formAction, isPending] = useActionState(saveInventoryData, { message: '', success: false })
     const [counts, setCounts] = useState({})
+    const [recordIds, setRecordIds] = useState({})
+    const [isPending, setIsPending] = useState(false)
+    const [message, setMessage] = useState({ text: '', success: false })
 
     // Reset state when modal opens/changes
     useEffect(() => {
         if (isOpen && initialRecords) {
             const newCounts = {}
+            const newRecordIds = {}
             initialRecords.forEach(record => {
                 const item = items.find(i => i.label === record.itemName)
                 if (item) {
                     newCounts[item.key] = record.stockCount
+                    newRecordIds[item.key] = record.id
                 }
             })
             setCounts(newCounts)
+            setRecordIds(newRecordIds)
+            setMessage({ text: '', success: false })
         }
     }, [isOpen, initialRecords, date])
-
-    // Close on success
-    useEffect(() => {
-        if (state?.success) {
-            onClose(true) // true = indicate refresh needed
-        }
-    }, [state?.success, onClose])
 
     if (!isOpen) return null
 
@@ -36,15 +34,40 @@ export default function EditInventoryModal({ isOpen, onClose, date, initialRecor
         setCounts(prev => ({ ...prev, [key]: value }))
     }
 
+    const handleSubmit = async (e) => {
+        e.preventDefault()
+        setIsPending(true)
+        setMessage({ text: '', success: false })
+
+        const formData = new FormData()
+        // ส่ง record_id_{id} = count สำหรับแต่ละรายการ
+        items.forEach(item => {
+            const id = recordIds[item.key]
+            if (id) {
+                formData.append(`record_id_${id}`, counts[item.key] || 0)
+            }
+        })
+
+        try {
+            const res = await updateInventoryRecords(null, formData)
+            setMessage({ text: res.message, success: res.success })
+            if (res.success) {
+                setTimeout(() => onClose(true), 800)
+            }
+        } catch (err) {
+            setMessage({ text: 'เกิดข้อผิดพลาด', success: false })
+        } finally {
+            setIsPending(false)
+        }
+    }
+
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto" ari-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
             {/* Backdrop */}
             <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onClick={() => onClose(false)}></div>
 
             <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-                <div
-                    className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl"
-                >
+                <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
                     <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
                         <div className="sm:flex sm:items-start w-full">
                             <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
@@ -55,14 +78,12 @@ export default function EditInventoryModal({ isOpen, onClose, date, initialRecor
                                     * บันทึกเฉพาะที่หน่วยงานตนเองถือครอง ไม่นับรวมหน่วยงานภายใต้กำกับ
                                 </p>
 
-                                <form action={formAction} className="mt-6 space-y-6">
-                                    <input type="hidden" name="recordDate" value={date} />
-
+                                <form onSubmit={handleSubmit} className="mt-6 space-y-6">
                                     <InventoryInputs counts={counts} onChange={handleCountChange} disabled={isReadOnly} />
 
-                                    {state?.message && (
-                                        <div className={`p-4 rounded-lg ${state.success ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
-                                            {state.message}
+                                    {message.text && (
+                                        <div className={`p-4 rounded-lg ${message.success ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                                            {message.text}
                                         </div>
                                     )}
 

@@ -52,11 +52,11 @@ export async function saveInventoryData(prevState, formData) {
     recordDate.setHours(0, 0, 0, 0)
 
     const items = [
-        { key: 'surgical_mask', label: 'หน้ากาก Surgical Mask (ชิ้น) (รายวัน)' },
-        { key: 'n95', label: 'หน้ากาก N95 (ชิ้น) (รายวัน)' },
-        { key: 'carbon_mask', label: 'หน้ากากคาร์บอน' },
-        { key: 'cloth_mask', label: 'หน้ากากผ้า' },
-        { key: 'dust_net', label: 'มุ้งสู้ฝุ่น' },
+        { key: 'surgical_mask', label: 'หน้ากาก Surgical Mask (ชิ้น)' },
+        { key: 'n95', label: 'หน้ากาก N95 (ชิ้น)' },
+        { key: 'carbon_mask', label: 'หน้ากากคาร์บอน (ชิ้น)' },
+        { key: 'cloth_mask', label: 'หน้ากากผ้า (ชิ้น)' },
+        { key: 'dust_net', label: 'มุ้งสู้ฝุ่น (หลัง)' },
     ]
 
     try {
@@ -95,6 +95,53 @@ export async function saveInventoryData(prevState, formData) {
     } catch (error) {
         console.error('Error saving inventory data:', error)
         return { message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล', success: false }
+    }
+}
+
+// อัปเดตข้อมูลโดยใช้ record ID โดยตรง (สำหรับ modal แก้ไขใน history)
+export async function updateInventoryRecords(prevState, formData) {
+    const session = await getSession()
+    if (!session) return { message: 'Unauthorized', success: false }
+
+    const user = await prisma.user.findUnique({ where: { id: session.userId } })
+    if (!user) return { message: 'User not found', success: false }
+
+    // รับ record IDs จาก formData: record_id_{id} = count
+    const updates = []
+    for (const [key, value] of formData.entries()) {
+        if (key.startsWith('record_id_')) {
+            const id = parseInt(key.replace('record_id_', ''))
+            const count = parseInt(value) || 0
+            if (!isNaN(id)) updates.push({ id, count })
+        }
+    }
+
+    if (updates.length === 0) {
+        return { message: 'ไม่มีข้อมูลที่จะแก้ไข', success: false }
+    }
+
+    try {
+        for (const { id, count } of updates) {
+            const record = await prisma.inventoryLog.findUnique({ where: { id } })
+            if (!record) continue
+
+            // ตรวจสอบสิทธิ์ (ยกเว้น ADMIN และ HEALTH_REGION)
+            if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && record.locationId !== user.locationId) {
+                return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานอื่น', success: false }
+            }
+
+            await prisma.inventoryLog.update({
+                where: { id },
+                data: { stockCount: count }
+            })
+        }
+
+        revalidatePath('/inventory')
+        return { message: 'แก้ไขข้อมูลเรียบร้อยแล้ว', success: true }
+
+    } catch (error) {
+        console.error('Error updating inventory records:', error)
+        return { message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล', success: false }
     }
 }
 

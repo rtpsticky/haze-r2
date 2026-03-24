@@ -34,6 +34,9 @@ export default function InventoryHistory({ history, isAdmin, userRole }) {
     const handleCloseModal = (shouldRefresh) => {
         setIsEditOpen(false)
         setEditData(null)
+        if (shouldRefresh) {
+            window.location.reload()
+        }
     }
 
     if (!history || history.length === 0) {

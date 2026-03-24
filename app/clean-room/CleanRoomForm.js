@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useState, useEffect } from 'react'
-import { saveCleanRoomData, getCleanRoomData, getCleanRoomHistory, deleteCleanRoomReport } from '@/app/actions/clean-room'
+import { saveCleanRoomData, getCleanRoomData, getCleanRoomHistory, deleteCleanRoomReport, updateCleanRoomRecords } from '@/app/actions/clean-room'
 import Link from 'next/link'
 import Modal from '@/app/pheoc/Modal'
 import CleanRoomTable from './CleanRoomTable'
@@ -19,6 +19,7 @@ export default function CleanRoomForm({ user }) {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [editingDate, setEditingDate] = useState(null)
     const [editFormData, setEditFormData] = useState({})
+    const [editRecordIds, setEditRecordIds] = useState({}) // placeType -> record id
     const [isLoadingEditData, setIsLoadingEditData] = useState(false)
     const [isSavingEdit, setIsSavingEdit] = useState(false)
 
@@ -84,6 +85,7 @@ export default function CleanRoomForm({ user }) {
         try {
             const data = await getCleanRoomData(dateStr)
             const newData = {}
+            const newIds = {}
             data.forEach(rec => {
                 newData[`${rec.placeType}_placeCount`] = rec.placeCount
                 newData[`${rec.placeType}_targetRoomCount`] = rec.targetRoomCount
@@ -92,8 +94,10 @@ export default function CleanRoomForm({ user }) {
                 newData[`${rec.placeType}_standard2Count`] = rec.standard2Count
                 newData[`${rec.placeType}_standard3Count`] = rec.standard3Count
                 newData[`${rec.placeType}_serviceUserCount`] = rec.serviceUserCount
+                newIds[rec.placeType] = rec.id // เก็บ ID ของแต่ละ placeType
             })
             setEditFormData(newData)
+            setEditRecordIds(newIds)
         } catch (e) {
             console.error(e)
         } finally {
@@ -104,23 +108,60 @@ export default function CleanRoomForm({ user }) {
     const handleSaveEdit = async () => {
         setIsSavingEdit(true)
         try {
-            const formDataObj = new FormData()
-            formDataObj.append('recordDate', editingDate)
-            Object.keys(editFormData).forEach(key => {
-                formDataObj.append(key, editFormData[key])
-            })
+            const placeTypes = [
+                'โรงพยาบาลศูนย์',
+                'โรงพยาบาลทั่วไป',
+                'โรงพยาบาลชุมชน',
+                'โรงพยาบาลส่งเสริมสุขภาพตำบล',
+                'โรงพยาบาลเอกชน',
+                'โรงพยาบาลสังกัดกระทรวงกลาโหม',
+                'โรงพยาบาลมหาวิทยาลัย',
+                'สสจ./สสอ.',
+                'หน่วยงานภาครัฐ (อบจ/อบต./สนง.ต่างๆ)',
+                'ศูนย์ดูแลผู้สูงอายุ',
+                'โรงเรียน',
+                'ศูนย์เด็กเล็ก',
+            ]
 
-            const result = await saveCleanRoomData(null, formDataObj)
-            if (result.success) {
+            // สร้าง records array สำหรับ update
+            const updates = placeTypes
+                .filter(type => editRecordIds[type]) // เฉพาะ placeTypes ที่มี record อยู่แล้ว
+                .map(type => ({
+                    id: editRecordIds[type],
+                    placeCount: parseInt(editFormData[`${type}_placeCount`]) || 0,
+                    targetRoomCount: parseInt(editFormData[`${type}_targetRoomCount`]) || 0,
+                    passedStandard: parseInt(editFormData[`${type}_passedStandard`]) || 0,
+                    standard1Count: parseInt(editFormData[`${type}_standard1Count`]) || 0,
+                    standard2Count: parseInt(editFormData[`${type}_standard2Count`]) || 0,
+                    standard3Count: parseInt(editFormData[`${type}_standard3Count`]) || 0,
+                    serviceUserCount: parseInt(editFormData[`${type}_serviceUserCount`]) || 0,
+                }))
+
+            // สำหรับ placeTypes ที่ยังไม่มี record ให้ใช้ saveCleanRoomData สร้างใหม่
+            const newTypes = placeTypes.filter(type => !editRecordIds[type])
+            let result
+            if (updates.length > 0) {
+                result = await updateCleanRoomRecords(updates)
+            }
+            if (newTypes.length > 0 && (!result || result.success)) {
+                const formDataObj = new FormData()
+                formDataObj.append('recordDate', editingDate)
+                newTypes.forEach(type => {
+                    formDataObj.append(`${type}_placeCount`, editFormData[`${type}_placeCount`] || 0)
+                    formDataObj.append(`${type}_targetRoomCount`, editFormData[`${type}_targetRoomCount`] || 0)
+                    formDataObj.append(`${type}_passedStandard`, editFormData[`${type}_passedStandard`] || 0)
+                    formDataObj.append(`${type}_standard1Count`, editFormData[`${type}_standard1Count`] || 0)
+                    formDataObj.append(`${type}_standard2Count`, editFormData[`${type}_standard2Count`] || 0)
+                    formDataObj.append(`${type}_standard3Count`, editFormData[`${type}_standard3Count`] || 0)
+                    formDataObj.append(`${type}_serviceUserCount`, editFormData[`${type}_serviceUserCount`] || 0)
+                })
+                result = await saveCleanRoomData(null, formDataObj)
+            }
+
+            if (!result || result.success) {
                 setIsEditModalOpen(false)
                 fetchHistory()
-                // If editing the same date as currently selected in main form, refresh that too
-                if (date === editingDate) {
-                    // trigger re-fetch basically? 
-                    // The main form effectively listens to `date`, but we update `formData` locally.
-                    // Ideally we should reload.
-                    window.location.reload()
-                }
+                if (date === editingDate) window.location.reload()
             } else {
                 alert(result.message || 'บันทึกไม่สำเร็จ')
             }

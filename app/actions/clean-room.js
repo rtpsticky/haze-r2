@@ -131,6 +131,47 @@ export async function saveCleanRoomData(prevState, formData) {
     }
 }
 
+// อัปเดตข้อมูลโดยใช้ record ID โดยตรง (สำหรับ modal แก้ไข)
+export async function updateCleanRoomRecords(records) {
+    const session = await getSession()
+    if (!session) return { message: 'Unauthorized', success: false }
+
+    const user = await prisma.user.findUnique({ where: { id: session.userId } })
+    if (!user) return { message: 'User not found', success: false }
+
+    // records: [{ id, placeCount, targetRoomCount, passedStandard, standard1Count, standard2Count, standard3Count, serviceUserCount }]
+    try {
+        for (const rec of records) {
+            const existing = await prisma.cleanRoomReport.findUnique({ where: { id: rec.id } })
+            if (!existing) continue
+
+            if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && existing.locationId !== user.locationId) {
+                return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานอื่น', success: false }
+            }
+
+            await prisma.cleanRoomReport.update({
+                where: { id: rec.id },
+                data: {
+                    placeCount: rec.placeCount,
+                    targetRoomCount: rec.targetRoomCount,
+                    passedStandard: rec.passedStandard,
+                    standard1Count: rec.standard1Count,
+                    standard2Count: rec.standard2Count,
+                    standard3Count: rec.standard3Count,
+                    serviceUserCount: rec.serviceUserCount,
+                }
+            })
+        }
+
+        revalidatePath('/clean-room')
+        return { message: 'แก้ไขข้อมูลเรียบร้อยแล้ว', success: true }
+
+    } catch (error) {
+        console.error('Error updating clean room records:', error)
+        return { message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล', success: false }
+    }
+}
+
 export async function getCleanRoomHistory() {
     const session = await getSession()
     if (!session) return []

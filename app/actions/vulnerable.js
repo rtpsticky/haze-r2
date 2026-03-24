@@ -112,6 +112,57 @@ export async function saveVulnerableData(prevState, formData) {
     }
 }
 
+// อัปเดตข้อมูลโดยใช้ record ID โดยตรง (สำหรับ modal แก้ไขใน history)
+export async function updateVulnerableRecords(prevState, formData) {
+    const session = await getSession()
+    if (!session) return { message: 'Unauthorized', success: false }
+
+    const user = await prisma.user.findUnique({ where: { id: session.userId } })
+    if (!user) return { message: 'User not found', success: false }
+
+    if (!['SSO', 'ADMIN', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
+        return { message: 'ไม่มีสิทธิ์ในการแก้ไขข้อมูล', success: false }
+    }
+
+    // รับ record IDs จาก formData: record_id_{id} = count
+    const updates = []
+    for (const [key, value] of formData.entries()) {
+        if (key.startsWith('record_id_')) {
+            const id = parseInt(key.replace('record_id_', ''))
+            const count = parseInt(value) || 0
+            if (!isNaN(id)) updates.push({ id, count })
+        }
+    }
+
+    if (updates.length === 0) {
+        return { message: 'ไม่มีข้อมูลที่จะแก้ไข', success: false }
+    }
+
+    try {
+        for (const { id, count } of updates) {
+            const record = await prisma.vulnerableData.findUnique({ where: { id } })
+            if (!record) continue
+
+            // ตรวจสอบสิทธิ์ (ยกเว้น ADMIN และ HEALTH_REGION)
+            if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && record.locationId !== user.locationId) {
+                return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานอื่น', success: false }
+            }
+
+            await prisma.vulnerableData.update({
+                where: { id },
+                data: { targetCount: count }
+            })
+        }
+
+        revalidatePath('/vulnerable')
+        return { message: 'แก้ไขข้อมูลเรียบร้อยแล้ว', success: true }
+
+    } catch (error) {
+        console.error('Error updating vulnerable records:', error)
+        return { message: 'เกิดข้อผิดพลาดในการแก้ไขข้อมูล', success: false }
+    }
+}
+
 export async function getVulnerableHistory() {
     const session = await getSession()
     if (!session) return []
