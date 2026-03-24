@@ -51,7 +51,7 @@ export default function CleanRoomTable({ formData, handleChange, isLoadingData }
                                         inputMode="numeric"
                                         value={formData[`${type}_placeCount`] || ''}
                                         onChange={(e) => handleChange(`${type}_placeCount`, e.target.value)}
-                                        className="block w-full rounded-lg border-slate-200 bg-white py-2 text-center text-sm font-medium text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 hover:border-emerald-300 transition-colors placeholder:text-slate-300" />
+                                        className="block w-full rounded-lg border border-slate-400 bg-white py-2 text-center text-sm font-medium text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 hover:border-emerald-400 transition-colors placeholder:text-slate-300" />
                                 </td>
                                 <td className="px-2 py-2">
                                     <input type="number" min="0" placeholder="0"
@@ -59,15 +59,23 @@ export default function CleanRoomTable({ formData, handleChange, isLoadingData }
                                         inputMode="numeric"
                                         value={formData[`${type}_targetRoomCount`] || ''}
                                         onChange={(e) => handleChange(`${type}_targetRoomCount`, e.target.value)}
-                                        className="block w-full rounded-lg border-slate-200 bg-white py-2 text-center text-sm font-medium text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 hover:border-emerald-300 transition-colors placeholder:text-slate-300" />
+                                        className="block w-full rounded-lg border border-slate-400 bg-white py-2 text-center text-sm font-medium text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 hover:border-emerald-400 transition-colors placeholder:text-slate-300" />
                                 </td>
                                 <td className="px-2 py-2">
-                                    <input type="number" min="0" placeholder="0"
-                                        name={`${type}_passedStandard`}
-                                        inputMode="numeric"
-                                        value={formData[`${type}_passedStandard`] || ''}
-                                        onChange={(e) => handleChange(`${type}_passedStandard`, e.target.value)}
-                                        className="block w-full rounded-lg border-emerald-200 bg-emerald-50/30 py-2 text-center text-sm font-bold text-emerald-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 hover:border-emerald-400 transition-colors placeholder:text-emerald-200/50" />
+                                    {(() => {
+                                        const s1 = parseInt(formData[`${type}_standard1Count`]) || 0
+                                        const s2 = parseInt(formData[`${type}_standard2Count`]) || 0
+                                        const s3 = parseInt(formData[`${type}_standard3Count`]) || 0
+                                        const total = s1 + s2 + s3
+                                        return (
+                                            <>
+                                                <input type="hidden" name={`${type}_passedStandard`} value={total} />
+                                                <div className="flex items-center justify-center w-full rounded-lg border border-emerald-200 bg-emerald-50 py-2 text-center text-sm font-bold text-emerald-700 shadow-sm select-none min-w-[60px]">
+                                                    {total}
+                                                </div>
+                                            </>
+                                        )
+                                    })()}
                                 </td>
                                 <td className="px-1 py-2 bg-slate-50/50 grayscale opacity-80 focus-within:grayscale-0 focus-within:opacity-100 transition-all duration-300">
                                     <input type="number" min="0" placeholder="0"
@@ -75,7 +83,7 @@ export default function CleanRoomTable({ formData, handleChange, isLoadingData }
                                         inputMode="numeric"
                                         value={formData[`${type}_standard1Count`] || ''}
                                         onChange={(e) => handleChange(`${type}_standard1Count`, e.target.value)}
-                                        className="block w-full rounded-lg border-slate-200 bg-white py-1.5 text-center text-sm text-slate-600 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm placeholder:text-slate-200" />
+                                        className="block w-full rounded-lg border border-slate-400 bg-white py-1.5 text-center text-sm text-slate-600 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm placeholder:text-slate-300" />
                                 </td>
                                 <td className="px-1 py-2 bg-slate-50/50 grayscale opacity-80 focus-within:grayscale-0 focus-within:opacity-100 transition-all duration-300">
                                     <input type="number" min="0" placeholder="0"
@@ -83,7 +91,7 @@ export default function CleanRoomTable({ formData, handleChange, isLoadingData }
                                         inputMode="numeric"
                                         value={formData[`${type}_standard2Count`] || ''}
                                         onChange={(e) => handleChange(`${type}_standard2Count`, e.target.value)}
-                                        className="block w-full rounded-lg border-slate-200 bg-white py-1.5 text-center text-sm text-slate-600 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm placeholder:text-slate-200" />
+                                        className="block w-full rounded-lg border border-slate-400 bg-white py-1.5 text-center text-sm text-slate-600 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm placeholder:text-slate-300" />
                                 </td>
                                 <td className="px-1 py-2 bg-slate-50/50 grayscale opacity-80 focus-within:grayscale-0 focus-within:opacity-100 transition-all duration-300">
                                     <input type="number" min="0" placeholder="0"
@@ -91,7 +99,7 @@ export default function CleanRoomTable({ formData, handleChange, isLoadingData }
                                         inputMode="numeric"
                                         value={formData[`${type}_standard3Count`] || ''}
                                         onChange={(e) => handleChange(`${type}_standard3Count`, e.target.value)}
-                                        className="block w-full rounded-lg border-slate-200 bg-white py-1.5 text-center text-sm text-slate-600 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm placeholder:text-slate-200" />
+                                        className="block w-full rounded-lg border border-slate-400 bg-white py-1.5 text-center text-sm text-slate-600 focus:border-emerald-500 focus:ring-emerald-500 shadow-sm placeholder:text-slate-300" />
                                 </td>
                                 <td className="px-2 py-2">
                                     <input type="number" min="0" placeholder="0"
@@ -99,7 +107,7 @@ export default function CleanRoomTable({ formData, handleChange, isLoadingData }
                                         inputMode="numeric"
                                         value={formData[`${type}_serviceUserCount`] || ''}
                                         onChange={(e) => handleChange(`${type}_serviceUserCount`, e.target.value)}
-                                        className="block w-full rounded-lg border-slate-200 bg-white py-2 text-center text-sm font-medium text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 hover:border-emerald-300 transition-colors placeholder:text-slate-300" />
+                                        className="block w-full rounded-lg border border-slate-400 bg-white py-2 text-center text-sm font-medium text-slate-700 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 hover:border-emerald-400 transition-colors placeholder:text-slate-300" />
                                 </td>
                             </tr>
                         ))

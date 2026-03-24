@@ -126,16 +126,21 @@ export default function CleanRoomForm({ user }) {
             // สร้าง records array สำหรับ update
             const updates = placeTypes
                 .filter(type => editRecordIds[type]) // เฉพาะ placeTypes ที่มี record อยู่แล้ว
-                .map(type => ({
-                    id: editRecordIds[type],
-                    placeCount: parseInt(editFormData[`${type}_placeCount`]) || 0,
-                    targetRoomCount: parseInt(editFormData[`${type}_targetRoomCount`]) || 0,
-                    passedStandard: parseInt(editFormData[`${type}_passedStandard`]) || 0,
-                    standard1Count: parseInt(editFormData[`${type}_standard1Count`]) || 0,
-                    standard2Count: parseInt(editFormData[`${type}_standard2Count`]) || 0,
-                    standard3Count: parseInt(editFormData[`${type}_standard3Count`]) || 0,
-                    serviceUserCount: parseInt(editFormData[`${type}_serviceUserCount`]) || 0,
-                }))
+                .map(type => {
+                    const s1 = parseInt(editFormData[`${type}_standard1Count`]) || 0
+                    const s2 = parseInt(editFormData[`${type}_standard2Count`]) || 0
+                    const s3 = parseInt(editFormData[`${type}_standard3Count`]) || 0
+                    return {
+                        id: editRecordIds[type],
+                        placeCount: parseInt(editFormData[`${type}_placeCount`]) || 0,
+                        targetRoomCount: parseInt(editFormData[`${type}_targetRoomCount`]) || 0,
+                        passedStandard: s1 + s2 + s3,
+                        standard1Count: s1,
+                        standard2Count: s2,
+                        standard3Count: s3,
+                        serviceUserCount: parseInt(editFormData[`${type}_serviceUserCount`]) || 0,
+                    }
+                })
 
             // สำหรับ placeTypes ที่ยังไม่มี record ให้ใช้ saveCleanRoomData สร้างใหม่
             const newTypes = placeTypes.filter(type => !editRecordIds[type])
@@ -147,12 +152,15 @@ export default function CleanRoomForm({ user }) {
                 const formDataObj = new FormData()
                 formDataObj.append('recordDate', editingDate)
                 newTypes.forEach(type => {
+                    const s1 = parseInt(editFormData[`${type}_standard1Count`]) || 0
+                    const s2 = parseInt(editFormData[`${type}_standard2Count`]) || 0
+                    const s3 = parseInt(editFormData[`${type}_standard3Count`]) || 0
                     formDataObj.append(`${type}_placeCount`, editFormData[`${type}_placeCount`] || 0)
                     formDataObj.append(`${type}_targetRoomCount`, editFormData[`${type}_targetRoomCount`] || 0)
-                    formDataObj.append(`${type}_passedStandard`, editFormData[`${type}_passedStandard`] || 0)
-                    formDataObj.append(`${type}_standard1Count`, editFormData[`${type}_standard1Count`] || 0)
-                    formDataObj.append(`${type}_standard2Count`, editFormData[`${type}_standard2Count`] || 0)
-                    formDataObj.append(`${type}_standard3Count`, editFormData[`${type}_standard3Count`] || 0)
+                    formDataObj.append(`${type}_passedStandard`, s1 + s2 + s3)
+                    formDataObj.append(`${type}_standard1Count`, s1)
+                    formDataObj.append(`${type}_standard2Count`, s2)
+                    formDataObj.append(`${type}_standard3Count`, s3)
                     formDataObj.append(`${type}_serviceUserCount`, editFormData[`${type}_serviceUserCount`] || 0)
                 })
                 result = await saveCleanRoomData(null, formDataObj)
