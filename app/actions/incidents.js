@@ -12,7 +12,7 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        select: { locationId: true, role: true, location: true }
     })
 
     // If no specific location requested, default to user's home location
@@ -20,8 +20,17 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
         if (user) locationIdToUse = user.locationId
     } else {
         // Permission Check
-        if (user?.role !== 'ADMIN' && parseInt(locationIdToUse) !== user.locationId) {
-            return { success: false, error: 'Unauthorized location access' }
+        const locationIdAsInt = parseInt(locationIdToUse)
+        if (user?.role !== 'ADMIN' && locationIdAsInt !== user.locationId) {
+            // Check if user is SSJ and accessing a location in their province
+            if (user?.role === 'SSJ') {
+                const targetLoc = await prisma.location.findUnique({ where: { id: locationIdAsInt } })
+                if (targetLoc?.provinceName !== user.location?.provinceName) {
+                    return { success: false, error: 'Unauthorized location access' }
+                }
+            } else {
+                return { success: false, error: 'Unauthorized location access' }
+            }
         }
     }
 
@@ -81,6 +90,11 @@ export async function saveIncident(prevState, formData) {
         select: { locationId: true, role: true }
     })
 
+    // Only HOSPITAL and PCU (and ADMIN) can save incidents
+    if (user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'ADMIN') {
+        return { success: false, message: 'สิทธิ์การบันทึกข้อมูลสำหรับ โรงพยาบาล และ รพ.สต. เท่านั้น' }
+    }
+
     // Permission Check
     if (user.role !== 'ADMIN' && locationId !== user.locationId) {
         return { success: false, message: 'Unauthorized location save' }
@@ -93,12 +107,13 @@ export async function saveIncident(prevState, formData) {
                 status,
                 incidentDetails,
                 recordDate: new Date(recordDate),
-                locationId: locationId
+                locationId: locationId,
+                isApproved: false
             }
         })
 
         revalidatePath('/incidents')
-        return { success: true, message: 'บันทึกข้อมูลสำเร็จ' }
+        return { success: true, message: 'บันทึกข้อมูลสำเร็จ (รอนุมัติจาก สสจ.)' }
     } catch (error) {
         console.error('Create Incident Error:', error)
         return { success: false, message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' }
@@ -122,6 +137,10 @@ export async function updateIncident(prevState, formData) {
         where: { id: session.userId },
         select: { locationId: true, role: true }
     })
+
+    if (user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'ADMIN') {
+        return { success: false, message: 'สิทธิ์การแก้ไขข้อมูลสำหรับ โรงพยาบาล และ รพ.สต. เท่านั้น' }
+    }
 
     // Verify existing incident
     const existing = await prisma.staffIncident.findUnique({ where: { id } })
@@ -150,6 +169,44 @@ export async function updateIncident(prevState, formData) {
     }
 }
 
+export async function approveIncident(id) {
+    const session = await getSession()
+    if (!session) return { success: false, message: 'Unauthorized' }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        include: { location: true }
+    })
+
+    if (user.role !== 'SSJ' && user.role !== 'ADMIN') {
+        return { success: false, message: 'สิทธิ์การอนุมัติสำหรับ สสจ. เท่านั้น' }
+    }
+
+    if (user.role === 'SSJ') {
+        const incident = await prisma.staffIncident.findUnique({
+            where: { id },
+            include: { location: true }
+        })
+        if (!incident) return { success: false, message: 'Incident not found' }
+        if (incident.location?.provinceName !== user.location?.provinceName) {
+            return { success: false, message: 'ไม่สามารถอนุมัติรายการข้ามจังหวัดได้' }
+        }
+    }
+
+    try {
+        await prisma.staffIncident.update({
+            where: { id },
+            data: { isApproved: true }
+        })
+
+        revalidatePath('/incidents')
+        return { success: true, message: 'อนุมัติรายการเรียบร้อยแล้ว' }
+    } catch (error) {
+        console.error('Approve Incident Error:', error)
+        return { success: false, message: 'เกิดข้อผิดพลาดในการอนุมัติ' }
+    }
+}
+
 export async function deleteIncident(id) {
     const session = await getSession()
     if (!session) return { success: false, message: 'Unauthorized' }
@@ -158,6 +215,13 @@ export async function deleteIncident(id) {
         where: { id: session.userId },
         select: { locationId: true, role: true }
     })
+
+    if (user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'ADMIN') {
+        // Allow ADMIN to delete approved, but if it's SSJ, wait SSJ is not allowed to delete initially.
+        // Actually, in the UI ADMIN has delete button.
+        // What about SSJ deleting? UI only shows delete for ADMIN if approved, and HOSPITAL/PCU/ADMIN if not approved.
+        return { success: false, message: 'สิทธิ์การลบข้อมูลสำหรับ โรงพยาบาล และ รพ.สต. เท่านั้น' }
+    }
 
     // Verify existing incident
     const existing = await prisma.staffIncident.findUnique({ where: { id } })

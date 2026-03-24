@@ -68,7 +68,7 @@ export default function VulnerablePage({ user }) {
         )
     }
 
-    const canEdit = user?.role === 'SSO' || user?.role === 'ADMIN'
+    const canEdit = user?.role === 'SSO' || user?.role === 'HOSPITAL' || user?.role === 'PCU' || user?.role === 'ADMIN'
 
     // If fetch success/submit success handled above...
 
@@ -94,7 +94,7 @@ export default function VulnerablePage({ user }) {
                     </div>
 
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-800 mb-8">
-                        <p>สิทธิ์การบันทึกข้อมูลสำหรับเจ้าหน้าที่ สสอ. เท่านั้น</p>
+                        <p>สิทธิ์การบันทึกข้อมูลสำหรับเจ้าหน้าที่ สสอ., โรงพยาบาล และ รพ.สต. เท่านั้น</p>
                     </div>
                 </div>
             </div>

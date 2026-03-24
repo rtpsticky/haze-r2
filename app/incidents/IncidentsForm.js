@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import Select from 'react-select'
-import { getIncidentData, saveIncident, updateIncident, deleteIncident } from '@/app/actions/incidents'
+import { getIncidentData, saveIncident, updateIncident, deleteIncident, approveIncident } from '@/app/actions/incidents'
 import { getProvinces, getDistricts, getSubDistricts } from '@/app/actions/locations'
 import { getOperationData } from '@/app/actions/operations' // Use default logic to get location via null if needed
 
@@ -64,7 +64,7 @@ export default function IncidentsForm({ user }) {
                 if (res.success && res.data.location) {
                     const loc = res.data.location
                     setCurrentLocationId(loc.id)
-                    if (user?.role === 'ADMIN') {
+                    if (user?.role === 'ADMIN' || user?.role === 'SSJ') {
                         setIsProvinceLocked(false)
                     } else {
                         setIsProvinceLocked(true)
@@ -209,6 +209,16 @@ export default function IncidentsForm({ user }) {
         })
     }
 
+    async function handleApprove(id) {
+        if (!confirm('ยืนยันการอนุมัติรายการนี้?')) return
+
+        startTransition(async () => {
+            const res = await approveIncident(id)
+            if (res.success) loadData()
+            else alert(res.message || 'เกิดข้อผิดพลาด')
+        })
+    }
+
     // Initial loading state wait
     if (!currentLocationId && isLoading && !isLocationInitialized) return <div className="p-6 text-slate-500">Loading initial location...</div>
 
@@ -286,45 +296,57 @@ export default function IncidentsForm({ user }) {
                     </div>
                 </div>
 
-                {/* Create Form */}
-                <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-6">
-                    <div className="border-b border-slate-100 pb-4 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                        <h2 className="text-xl font-bold text-slate-700">รายงานผลกระทบต่อสุขภาพ (เพิ่มรายการใหม่)</h2>
-                    </div>
-
-                    <div className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-600 mb-2">ชื่อ-นามสกุล (เจ้าหน้าที่/จิตอาสา ดับไฟป่า) <span className="text-red-500">*</span></label>
-                            <input type="text" required className="block w-full rounded-lg border-slate-200 shadow-sm focus:border-red-500 focus:ring-red-500 py-2.5 px-3 text-slate-700 transition-colors" placeholder="ระบุชื่อ-นามสกุล" value={formData.staffName} onChange={(e) => handleChange('staffName', e.target.value)} />
+                {/* Create Form - Only for Hospital and PCU (and Admin) */}
+                {(user?.role === 'HOSPITAL' || user?.role === 'PCU' || user?.role === 'ADMIN') ? (
+                    <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 space-y-6">
+                        <div className="border-b border-slate-100 pb-4 flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                            <h2 className="text-xl font-bold text-slate-700">รายงานผลกระทบต่อสุขภาพ (เพิ่มรายการใหม่)</h2>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-600 mb-3">สถานะ <span className="text-red-500">*</span></label>
-                            <div className="flex gap-6">
-                                <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.status === 'บาดเจ็บ' ? 'bg-red-50 border-red-500 text-red-700 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-red-200'}`}>
-                                    <input type="radio" name="status" value="บาดเจ็บ" className="w-5 h-5 text-red-600 border-gray-300 focus:ring-red-500" checked={formData.status === 'บาดเจ็บ'} onChange={(e) => handleChange('status', e.target.value)} required />
-                                    <span className="font-medium">บาดเจ็บ</span>
-                                </label>
-                                <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.status === 'เสียชีวิต' ? 'bg-red-50 border-red-500 text-red-700 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-red-200'}`}>
-                                    <input type="radio" name="status" value="เสียชีวิต" className="w-5 h-5 text-red-600 border-gray-300 focus:ring-red-500" checked={formData.status === 'เสียชีวิต'} onChange={(e) => handleChange('status', e.target.value)} />
-                                    <span className="font-medium">เสียชีวิต</span>
-                                </label>
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-600 mb-2">ชื่อ-นามสกุล (เจ้าหน้าที่/จิตอาสา ดับไฟป่า) <span className="text-red-500">*</span></label>
+                                <input type="text" required className="block w-full rounded-lg border-slate-200 shadow-sm focus:border-red-500 focus:ring-red-500 py-2.5 px-3 text-slate-700 transition-colors" placeholder="ระบุชื่อ-นามสกุล" value={formData.staffName} onChange={(e) => handleChange('staffName', e.target.value)} />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-600 mb-3">สถานะ <span className="text-red-500">*</span></label>
+                                <div className="flex gap-6">
+                                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.status === 'บาดเจ็บ' ? 'bg-red-50 border-red-500 text-red-700 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-red-200'}`}>
+                                        <input type="radio" name="status" value="บาดเจ็บ" className="w-5 h-5 text-red-600 border-gray-300 focus:ring-red-500" checked={formData.status === 'บาดเจ็บ'} onChange={(e) => handleChange('status', e.target.value)} required />
+                                        <span className="font-medium">บาดเจ็บ</span>
+                                    </label>
+                                    <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${formData.status === 'เสียชีวิต' ? 'bg-red-50 border-red-500 text-red-700 shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-red-200'}`}>
+                                        <input type="radio" name="status" value="เสียชีวิต" className="w-5 h-5 text-red-600 border-gray-300 focus:ring-red-500" checked={formData.status === 'เสียชีวิต'} onChange={(e) => handleChange('status', e.target.value)} />
+                                        <span className="font-medium">เสียชีวิต</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-600 mb-2">รายละเอียดเหตุการณ์ <span className="text-red-500">*</span></label>
+                                <textarea required rows={4} className="block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 py-3 px-4 text-slate-700 transition-all hover:bg-slate-50 focus:bg-white focus:shadow-md placeholder:text-slate-400" placeholder="ระบุรายละเอียดเหตุการณ์..." value={formData.incidentDetails} onChange={(e) => handleChange('incidentDetails', e.target.value)} />
                             </div>
                         </div>
 
+                        <div className="flex justify-end pt-2">
+                            <button type="submit" disabled={isPending || !currentLocationId} className="rounded-xl bg-emerald-600 px-10 py-3 text-base font-semibold text-white shadow-lg hover:bg-emerald-500 hover:shadow-emerald-500/30 hover:-translate-y-0.5 transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0">
+                                {isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                            </button>
+                        </div>
+                    </form>
+                ) : user?.role === 'SSJ' ? (
+                    <div className="bg-blue-50 border border-blue-100 p-6 rounded-2xl flex items-center gap-4 text-blue-800">
+                        <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                        </div>
                         <div>
-                            <label className="block text-sm font-semibold text-slate-600 mb-2">รายละเอียดเหตุการณ์ <span className="text-red-500">*</span></label>
-                            <textarea required rows={4} className="block w-full rounded-xl border-slate-200 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 py-3 px-4 text-slate-700 transition-all hover:bg-slate-50 focus:bg-white focus:shadow-md placeholder:text-slate-400" placeholder="ระบุรายละเอียดเหตุการณ์..." value={formData.incidentDetails} onChange={(e) => handleChange('incidentDetails', e.target.value)} />
+                            <p className="font-bold">สิทธิ์การใช้งานสำหรับ สสจ.</p>
+                            <p className="text-sm opacity-90">ในฐานะ สสจ. ท่านสามารถเลือกพื้นที่เพื่อตรวจสอบและอนุมัติรายการเหตุการณ์ได้ (สิทธิ์การบันทึกสำหรับ รพ./รพ.สต.)</p>
                         </div>
                     </div>
-
-                    <div className="flex justify-end pt-2">
-                        <button type="submit" disabled={isPending || !currentLocationId} className="rounded-xl bg-emerald-600 px-10 py-3 text-base font-semibold text-white shadow-lg hover:bg-emerald-500 hover:shadow-emerald-500/30 hover:-translate-y-0.5 transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:bg-slate-300 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0">
-                            {isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
-                        </button>
-                    </div>
-                </form>
+                ) : null}
 
                 {/* Incidents History Table */}
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -342,8 +364,9 @@ export default function IncidentsForm({ user }) {
                                 <tr>
                                     <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600">ชื่อ-นามสกุล</th>
                                     <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600">สถานะ</th>
-                                    <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600">รายละเอียด</th>
-                                    <th scope="col" className="px-6 py-4 text-right text-sm font-semibold text-slate-600">จัดการ</th>
+                                    <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600 whitespace-nowrap">รายละเอียด</th>
+                                    <th scope="col" className="px-6 py-4 text-center text-sm font-semibold text-slate-600 whitespace-nowrap">สถานะอนุมัติ</th>
+                                    <th scope="col" className="px-6 py-4 text-right text-sm font-semibold text-slate-600 whitespace-nowrap">จัดการ</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 bg-white">
@@ -355,9 +378,33 @@ export default function IncidentsForm({ user }) {
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${incident.status === 'เสียชีวิต' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'}`}>{incident.status}</span>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600 max-w-md truncate">{incident.incidentDetails}</td>
+                                            <td className="px-6 py-4 text-center">
+                                                {incident.isApproved ? (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 border border-emerald-100">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
+                                                        อนุมัติแล้ว
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 border border-slate-200">
+                                                        รอนุมัติ
+                                                    </span>
+                                                )}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <button onClick={() => { setEditingIncident(incident); setShowEditModal(true) }} className="text-blue-600 hover:text-blue-900 mr-4 transition-colors">แก้ไข</button>
-                                                <button onClick={() => handleDelete(incident.id)} className="text-red-600 hover:text-red-900 transition-colors">ลบ</button>
+                                                <div className="flex justify-end gap-2">
+                                                    {!incident.isApproved && (user?.role === 'SSJ' || user?.role === 'ADMIN') && (
+                                                        <button onClick={() => handleApprove(incident.id)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded text-xs transition-colors shadow-sm">อนุมัติ</button>
+                                                    )}
+                                                    {(user?.role === 'HOSPITAL' || user?.role === 'PCU' || user?.role === 'ADMIN') && !incident.isApproved && (
+                                                        <>
+                                                            <button onClick={() => { setEditingIncident(incident); setShowEditModal(true) }} className="text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors">แก้ไข</button>
+                                                            <button onClick={() => handleDelete(incident.id)} className="text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-colors">ลบ</button>
+                                                        </>
+                                                    )}
+                                                    {incident.isApproved && (user?.role === 'ADMIN') && (
+                                                        <button onClick={() => handleDelete(incident.id)} className="text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-colors">ลบ</button>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

@@ -153,6 +153,7 @@ model StaffIncident {
   status          String // บาดเจ็บ, เสียชีวิต [cite: 87]
   incidentDetails String   @db.Text // รายละเอียดเหตุการณ์ [cite: 88]
   recordDate      DateTime // วันที่บันทึก [cite: 85]
+  isApproved      Boolean  @default(false) // สถานะการอนุมัติรายการ
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])

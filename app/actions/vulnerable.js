@@ -53,9 +53,9 @@ export async function saveVulnerableData(prevState, formData) {
         return { message: 'User not found', success: false }
     }
 
-    // Only SSO (and ADMIN for override) can save this data
-    if (user.role !== 'SSO' && user.role !== 'ADMIN') {
-        return { message: 'สิทธิ์การบันทึกข้อมูลสำหรับ สสอ. เท่านั้น', success: false }
+    // Only SSO, HOSPITAL, PCU (and ADMIN for override) can save this data
+    if (user.role !== 'SSO' && user.role !== 'HOSPITAL' && user.role !== 'PCU' && user.role !== 'ADMIN') {
+        return { message: 'สิทธิ์การบันทึกข้อมูลสำหรับ สสอ., โรงพยาบาล และ รพ.สต. เท่านั้น', success: false }
     }
 
     const recordDate = new Date(formData.get('recordDate'))
