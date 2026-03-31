@@ -121,10 +121,14 @@ export default function DashboardPage() {
 
     const vulnerableTotal = vulnerableData.reduce((acc, curr) => acc + curr.value, 0);
 
-    const inventoryData = stats.inventory?.byItem?.map(i => ({
-        name: i.name,
-        stock: i.count
-    })) || [];
+    const inventoryData = stats.inventory?.byItem
+        ?.filter(i => !(i.name || '').includes('(รายวัน)'))
+        .map(i => ({
+            name: i.name,
+            stock: i.count
+        })) || [];
+
+    const inventoryTotalFiltered = inventoryData.reduce((acc, curr) => acc + curr.stock, 0);
 
     const operationData = stats.operation?.byActivity?.map(o => ({
         name: o.name,
@@ -492,7 +496,7 @@ export default function DashboardPage() {
                             หน้ากากอนามัยคงเหลือ
                         </h3>
                         <div className="text-center mb-6">
-                            <div className="text-4xl font-bold text-blue-600">{stats.inventory?.totalStock?.toLocaleString()}</div>
+                            <div className="text-4xl font-bold text-blue-600">{inventoryTotalFiltered.toLocaleString()}</div>
                             <div className="text-sm text-slate-400 mt-1">จำนวนคงเหลือ (ชิ้น)</div>
                         </div>
                         <div className="h-48">
