@@ -280,5 +280,22 @@ export async function getActiveCareExportData() {
         })
     ])
 
-    return { activeCares, adminSupport }
+    const locationIds = [...new Set([
+        ...activeCares.map(a => a.locationId),
+        ...adminSupport.map(a => a.locationId)
+    ].filter(Boolean))]
+
+    let orgNameMap = {}
+    if (locationIds.length > 0) {
+        const users = await prisma.user.findMany({
+            where: { locationId: { in: locationIds } },
+            select: { locationId: true, orgName: true }
+        })
+
+        users.forEach(u => {
+            if (!orgNameMap[u.locationId]) orgNameMap[u.locationId] = u.orgName
+        })
+    }
+
+    return { activeCares, adminSupport, orgNameMap }
 }

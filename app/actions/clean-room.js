@@ -294,5 +294,27 @@ export async function getCleanRoomExportData() {
         }
     })
 
-    return records
+    const locationIds = [...new Set(records.map(r => r.locationId).filter(Boolean))]
+
+    let users = []
+    if (locationIds.length > 0) {
+        users = await prisma.user.findMany({
+            where: {
+                locationId: { in: locationIds }
+            },
+            select: { locationId: true, orgName: true, role: true }
+        })
+    }
+
+    const locToOrgMap = {}
+    users.forEach(u => {
+        if (!locToOrgMap[u.locationId]) {
+            locToOrgMap[u.locationId] = u.orgName
+        }
+    })
+
+    return records.map(r => ({
+        ...r,
+        orgName: locToOrgMap[r.locationId] || '-'
+    }))
 }

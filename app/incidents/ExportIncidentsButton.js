@@ -21,6 +21,7 @@ export default function ExportIncidentsButton() {
                 'จังหวัด': item.location?.provinceName || '-',
                 'อำเภอ': item.location?.districtName || '-',
                 'ตำบล': item.location?.subDistrict || '-',
+                'หน่วยงานที่รายงาน': item.orgName || '-',
                 'ชื่อ-นามสุกล': item.staffName || '-',
                 'สถานะการบาดเจ็บ': item.status || '-',
                 'รายละเอียดเหตุการณ์': item.incidentDetails || '-'

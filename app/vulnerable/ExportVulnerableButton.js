@@ -28,6 +28,7 @@ export default function ExportVulnerableButton({ role }) {
                         'จังหวัด': item.location?.provinceName || '-',
                         'อำเภอ': item.location?.districtName || '-',
                         'ตำบล': item.location?.subDistrict || '-',
+                        'หน่วยงานที่รายงาน': item.orgName || '-',
                         'กลุ่มเด็กเล็ก (0-5 ปี)': 0,
                         'กลุ่มหญิงตั้งครรภ์': 0,
                         'กลุ่มผู้สูงอายุ': 0,
