@@ -131,7 +131,8 @@ export async function GET(request) {
           eoc_status: 'closed', // default
           vulnerable_groups_target: 0,
           clean_room_usage: 0,
-          clean_room_users: 0
+          clean_room_users: 0,
+          pdf_url: null
         },
         vulnerable: {
           small_child: 0,
@@ -147,6 +148,7 @@ export async function GET(request) {
     }
 
     // Process PHEOC - grab the latest status for each province
+    const BASE_URL = 'https://epid-odpc2.ddc.moph.go.th';
     const handledProvincesForEoc = {};
     for (const report of pheocReports) {
       const loc = locations.find(l => l.id === report.locationId);
@@ -156,6 +158,9 @@ export async function GET(request) {
         if (!handledProvincesForEoc[pName]) {
            handledProvincesForEoc[pName] = true;
            aggregatedData[pName].emergency.eoc_status = mapEocStatus(report.status);
+           aggregatedData[pName].emergency.pdf_url = report.pdfUrl
+             ? `${BASE_URL}${report.pdfUrl}`
+             : null;
         }
       }
     }
