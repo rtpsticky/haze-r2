@@ -72,14 +72,22 @@ export async function GET(request) {
       prisma.vulnerableData.findMany({
         where: {
           locationId: { in: locationIds },
-          recordDate: { gte: startOfDay, lte: endOfDay }
-        }
+          recordDate: { lte: endOfDay }
+        },
+        orderBy: [
+          { recordDate: 'desc' },
+          { id: 'desc' }
+        ]
       }),
       prisma.cleanRoomReport.findMany({
         where: {
           locationId: { in: locationIds },
-          recordDate: { gte: startOfDay, lte: endOfDay }
-        }
+          recordDate: { lte: endOfDay }
+        },
+        orderBy: [
+          { recordDate: 'desc' },
+          { id: 'desc' }
+        ]
       }),
       prisma.staffIncident.findMany({
         where: {
@@ -124,8 +132,13 @@ export async function GET(request) {
       }
     }
 
-    // Process Vulnerable Data
+    // Process Vulnerable Data (Latest Snapshot by Location + Group)
+    const vulnerableSeen = new Set();
     for (const data of vulnerableData) {
+      const uniqueKey = `${data.locationId}-${data.groupType}`;
+      if (vulnerableSeen.has(uniqueKey)) continue; // We only want the latest record
+      vulnerableSeen.add(uniqueKey);
+
       const loc = locations.find(l => l.id === data.locationId);
       if (loc && aggregatedData[loc.provinceName]) {
         const pName = loc.provinceName;
@@ -152,8 +165,13 @@ export async function GET(request) {
       }
     }
 
-    // Process Clean Room
+    // Process Clean Room (Latest Snapshot by Location + Place Type)
+    const cleanRoomSeen = new Set();
     for (const report of cleanRoomReports) {
+      const uniqueKey = `${report.locationId}-${report.placeType}`;
+      if (cleanRoomSeen.has(uniqueKey)) continue; // We only want the latest record
+      cleanRoomSeen.add(uniqueKey);
+
       const loc = locations.find(l => l.id === report.locationId);
       if (loc && aggregatedData[loc.provinceName]) {
         const pName = loc.provinceName;
