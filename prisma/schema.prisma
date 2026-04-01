@@ -157,7 +157,7 @@ model StaffIncident {
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])
-}
+}target_group
 
 model ActiveCareLog {
   id         Int      @id @default(autoincrement())

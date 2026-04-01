@@ -21,6 +21,20 @@ const mapIncidentStatus = (status) => {
   return status || 'unknown';
 };
 
+const mapTargetGroup = (dbGroup) => {
+  if (!dbGroup) return '';
+  const g = dbGroup.toUpperCase();
+  if (g.includes('เด็กเล็ก') || g.includes('SMALL_CHILD')) return 'small_child';
+  if (g.includes('ตั้งครรภ์') || g.includes('PREGNANT')) return 'pregnant';
+  if (g.includes('ผู้สูงอายุ') || g.includes('ELDERLY')) return 'elderly';
+  if (g.includes('ติดเตียง') || g.includes('BEDRIDDEN')) return 'bedridden';
+  if (g.includes('โรคหัวใจ') || g.includes('HEART_DISEASE')) return 'heart_disease';
+  if (g.includes('ทางเดินหายใจ') || g.includes('RESPIRATORY')) return 'respiratory';
+  if (g.includes('ประชาชนทั่วไป') || g.includes('GENERAL')) return 'general_public';
+  if (g.includes('608')) return 'group_608';
+  return dbGroup.toLowerCase(); // Fallback
+};
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -58,7 +72,7 @@ export async function GET(request) {
     }
 
     // Fetch data concurrently for the specific date and locations
-    const [pheocReports, vulnerableData, cleanRoomReports, staffIncidents] = await Promise.all([
+    const [pheocReports, vulnerableData, cleanRoomReports, operationLogs, staffIncidents] = await Promise.all([
       prisma.pheocReport.findMany({
         where: {
           locationId: { in: locationIds },
@@ -80,6 +94,16 @@ export async function GET(request) {
         ]
       }),
       prisma.cleanRoomReport.findMany({
+        where: {
+          locationId: { in: locationIds },
+          recordDate: { lte: endOfDay }
+        },
+        orderBy: [
+          { recordDate: 'desc' },
+          { id: 'desc' }
+        ]
+      }),
+      prisma.operationLog.findMany({
         where: {
           locationId: { in: locationIds },
           recordDate: { lte: endOfDay }
@@ -114,6 +138,15 @@ export async function GET(request) {
           target_elderly: 0,
           clean_room_users: 0
         },
+        vulnerable: {
+          small_child: 0,
+          pregnant: 0,
+          elderly: 0,
+          bedridden: 0,
+          heart_disease: 0,
+          respiratory: 0
+        },
+        operations: {},
         impacts: []
       };
     }
@@ -148,19 +181,21 @@ export async function GET(request) {
         aggregatedData[pName].emergency.vulnerable_groups_target += count;
         
         // Add to specific health segments (using actual database labels)
-        if (data.groupType === 'กลุ่มเด็กเล็ก (0-5 ปี)') {
+        if (data.groupType === 'กลุ่มเด็กเล็ก (0-5 ปี)' || data.groupType === 'เด็กเล็ก') {
            aggregatedData[pName].health.target_small_child += count;
-        } else if (data.groupType === 'กลุ่มหญิงตั้งครรภ์') {
+           aggregatedData[pName].vulnerable.small_child += count;
+        } else if (data.groupType === 'กลุ่มหญิงตั้งครรภ์' || data.groupType === 'หญิงตั้งครรภ์') {
            aggregatedData[pName].health.target_pregnant += count;
-        } else if (data.groupType === 'กลุ่มผู้สูงอายุ') {
+           aggregatedData[pName].vulnerable.pregnant += count;
+        } else if (data.groupType === 'กลุ่มผู้สูงอายุ' || data.groupType === 'ผู้สูงอายุ') {
            aggregatedData[pName].health.target_elderly += count;
-        } else if (data.groupType === 'เด็กเล็ก') {
-           // Adding fallback for older data forms (schema says เด็กเล็ก, หญิงตั้งครรภ์, ผู้สูงอายุ)
-           aggregatedData[pName].health.target_small_child += count;
-        } else if (data.groupType === 'หญิงตั้งครรภ์') {
-           aggregatedData[pName].health.target_pregnant += count;
-        } else if (data.groupType === 'ผู้สูงอายุ') {
-           aggregatedData[pName].health.target_elderly += count;
+           aggregatedData[pName].vulnerable.elderly += count;
+        } else if (data.groupType === 'กลุ่มติดเตียง' || data.groupType === 'ติดเตียง') {
+           aggregatedData[pName].vulnerable.bedridden += count;
+        } else if (data.groupType === 'กลุ่มผู้ที่มีโรคหัวใจ' || data.groupType === 'โรคหัวใจ') {
+           aggregatedData[pName].vulnerable.heart_disease += count;
+        } else if (data.groupType === 'กลุ่มผู้ที่มีโรคระบบทางเดินหายใจ' || data.groupType === 'โรคทางเดินหายใจ') {
+           aggregatedData[pName].vulnerable.respiratory += count;
         }
       }
     }
@@ -178,6 +213,31 @@ export async function GET(request) {
         // Map clean_room_usage to passed rooms, and clean_room_users to serviceUserCount
         aggregatedData[pName].emergency.clean_room_usage += (report.passedStandard || 0);
         aggregatedData[pName].health.clean_room_users += (report.serviceUserCount || 0);
+      }
+    }
+
+    // Process Operations Data (Latest Snapshot by Location + Activity + Target Group + Item)
+    const operationsSeen = new Set();
+    for (const op of operationLogs) {
+      const uniqueKey = `${op.locationId}-${op.activityType}-${op.targetGroup}-${op.itemName}`;
+      if (operationsSeen.has(uniqueKey)) continue; // We only want the latest record for this combo
+      operationsSeen.add(uniqueKey);
+
+      const loc = locations.find(l => l.id === op.locationId);
+      if (loc && aggregatedData[loc.provinceName]) {
+        const pName = loc.provinceName;
+        const mappedTargetGroup = mapTargetGroup(op.targetGroup);
+        
+        if (!mappedTargetGroup) continue;
+
+        if (!aggregatedData[pName].operations[mappedTargetGroup]) {
+            aggregatedData[pName].operations[mappedTargetGroup] = [];
+        }
+
+        aggregatedData[pName].operations[mappedTargetGroup].push({
+           item_name: op.itemName || '',
+           amount: op.amount || 0
+        });
       }
     }
 
