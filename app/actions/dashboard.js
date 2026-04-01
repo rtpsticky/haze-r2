@@ -98,7 +98,7 @@ export async function getDashboardStats(filters = {}) {
                 alertCount++;
                 alertList.push(item);
             } else if (latest.status === 'เปิด PHEOC') {
-                // If Open PHEOC, it must be counted in one of the levels
+                // If Open PHEOC with a responseLevel, show ONLY in the response level bucket (not in alert)
                 if (latest.responseLevel === 'ระดับตอบโต้ 1') {
                     level1Count++;
                     level1List.push(item);
@@ -108,10 +108,11 @@ export async function getDashboardStats(filters = {}) {
                 } else if (latest.responseLevel === 'ระดับตอบโต้ 3') {
                     level3Count++;
                     level3List.push(item);
+                } else {
+                    // เปิด PHEOC but no responseLevel set — fall back to alert
+                    alertCount++;
+                    alertList.push(item);
                 }
-                // Also count as Alert for the summary overview
-                alertCount++;
-                alertList.push(item);
             }
         });
 
