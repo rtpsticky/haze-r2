@@ -130,12 +130,7 @@ export async function GET(request) {
         emergency: {
           eoc_status: 'closed', // default
           vulnerable_groups_target: 0,
-          clean_room_usage: 0
-        },
-        health: {
-          target_small_child: 0,
-          target_pregnant: 0,
-          target_elderly: 0,
+          clean_room_usage: 0,
           clean_room_users: 0
         },
         vulnerable: {
@@ -180,15 +175,12 @@ export async function GET(request) {
         // Add to total vulnerable target
         aggregatedData[pName].emergency.vulnerable_groups_target += count;
         
-        // Add to specific health segments (using actual database labels)
+        // Add to specific vulnerable segments
         if (data.groupType === 'กลุ่มเด็กเล็ก (0-5 ปี)' || data.groupType === 'เด็กเล็ก') {
-           aggregatedData[pName].health.target_small_child += count;
            aggregatedData[pName].vulnerable.small_child += count;
         } else if (data.groupType === 'กลุ่มหญิงตั้งครรภ์' || data.groupType === 'หญิงตั้งครรภ์') {
-           aggregatedData[pName].health.target_pregnant += count;
            aggregatedData[pName].vulnerable.pregnant += count;
         } else if (data.groupType === 'กลุ่มผู้สูงอายุ' || data.groupType === 'ผู้สูงอายุ') {
-           aggregatedData[pName].health.target_elderly += count;
            aggregatedData[pName].vulnerable.elderly += count;
         } else if (data.groupType === 'กลุ่มติดเตียง' || data.groupType === 'ติดเตียง') {
            aggregatedData[pName].vulnerable.bedridden += count;
@@ -212,7 +204,7 @@ export async function GET(request) {
         const pName = loc.provinceName;
         // Map clean_room_usage to passed rooms, and clean_room_users to serviceUserCount
         aggregatedData[pName].emergency.clean_room_usage += (report.passedStandard || 0);
-        aggregatedData[pName].health.clean_room_users += (report.serviceUserCount || 0);
+        aggregatedData[pName].emergency.clean_room_users += (report.serviceUserCount || 0);
       }
     }
 
