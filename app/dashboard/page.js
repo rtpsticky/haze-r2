@@ -470,7 +470,14 @@ export default function DashboardPage() {
                                     contentStyle={{ backgroundColor: 'white', borderColor: '#E5E7EB', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                     itemStyle={{ color: '#374151' }}
                                 />
-                                <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle" />
+                                <Legend 
+                                    verticalAlign="middle" 
+                                    align="right" 
+                                    layout="vertical" 
+                                    iconType="circle"
+                                    wrapperStyle={{ fontSize: '13px' }}
+                                    formatter={(value, entry) => <span className="text-slate-600 ml-1">{value} ({entry.payload?.value?.toLocaleString() || 0})</span>}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -499,15 +506,15 @@ export default function DashboardPage() {
                             <div className="text-4xl font-bold text-blue-600">{inventoryTotalFiltered.toLocaleString()}</div>
                             <div className="text-sm text-slate-400 mt-1">จำนวนคงเหลือ (ชิ้น)</div>
                         </div>
-                        <div className="h-48">
+                        <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={inventoryData}
-                                        cx="50%"
+                                        cx="40%"
                                         cy="50%"
-                                        innerRadius={50}
-                                        outerRadius={70}
+                                        innerRadius={45}
+                                        outerRadius={65}
                                         paddingAngle={5}
                                         dataKey="stock"
                                     >
@@ -516,6 +523,17 @@ export default function DashboardPage() {
                                         ))}
                                     </Pie>
                                     <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                    <Legend 
+                                        layout="vertical" 
+                                        align="right" 
+                                        verticalAlign="middle" 
+                                        iconType="circle"
+                                        wrapperStyle={{ fontSize: '12px', right: 0 }}
+                                        formatter={(value, entry) => {
+                                            const qty = entry.payload?.stock ?? entry.payload?.value ?? entry.payload?.payload?.stock ?? 0;
+                                            return <span className="text-slate-600 ml-1">{value} ({qty.toLocaleString()})</span>;
+                                        }}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -531,15 +549,15 @@ export default function DashboardPage() {
                             <div className="text-4xl font-bold text-orange-600">{ppeTotal.toLocaleString()}</div>
                             <div className="text-sm text-slate-400 mt-1">แจกจ่ายแล้ว (ชิ้น)</div>
                         </div>
-                        <div className="h-48">
+                        <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={ppeChartData}
-                                        cx="50%"
+                                        cx="40%"
                                         cy="50%"
-                                        innerRadius={50}
-                                        outerRadius={70}
+                                        innerRadius={45}
+                                        outerRadius={65}
                                         paddingAngle={5}
                                         dataKey="value"
                                         onClick={(data) => handlePPEClick(data.payload)}
@@ -550,6 +568,14 @@ export default function DashboardPage() {
                                         ))}
                                     </Pie>
                                     <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                    <Legend 
+                                        layout="vertical" 
+                                        align="right" 
+                                        verticalAlign="middle" 
+                                        iconType="circle"
+                                        wrapperStyle={{ fontSize: '12px', right: 0, width: '55%' }}
+                                        formatter={(value, entry) => <span className="text-slate-600 ml-1">{value} ({entry.payload?.value?.toLocaleString() || 0})</span>}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -565,15 +591,15 @@ export default function DashboardPage() {
                             <div className="text-4xl font-bold text-green-600">{cleanRoomTotal.toLocaleString()}</div>
                             <div className="text-sm text-slate-400 mt-1">จำนวนห้องทั้งหมด (ห้อง)</div>
                         </div>
-                        <div className="h-48">
+                        <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={cleanRoomData}
-                                        cx="50%"
+                                        cx="40%"
                                         cy="50%"
-                                        innerRadius={50}
-                                        outerRadius={70}
+                                        innerRadius={45}
+                                        outerRadius={65}
                                         paddingAngle={5}
                                         dataKey="value"
                                         onClick={(data) => handleCleanRoomClick(data.payload)}
@@ -584,6 +610,14 @@ export default function DashboardPage() {
                                         ))}
                                     </Pie>
                                     <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                    <Legend 
+                                        layout="vertical" 
+                                        align="right" 
+                                        verticalAlign="middle" 
+                                        iconType="circle"
+                                        wrapperStyle={{ fontSize: '12px', right: 0, width: '55%' }}
+                                        formatter={(value, entry) => <span className="text-slate-600 ml-1">{value} ({entry.payload?.value?.toLocaleString() || 0})</span>}
+                                    />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>

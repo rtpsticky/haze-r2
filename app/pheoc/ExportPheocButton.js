@@ -24,7 +24,7 @@ export default function ExportPheocButton({ role }) {
                 'จังหวัด': item.location?.provinceName || '-',
                 'อำเภอ': item.location?.districtName || '-',
                 'ตำบล': item.location?.subDistrict || '-',
-                'ตำแหน่งผู้รายงาน': item.recordedByRole || '-',
+                'หน่วยงานที่รายงาน': item.orgName || '-',
                 'วันที่บันทึกข้อมูล': new Date(item.recordedAt).toLocaleString('th-TH'),
             }))
 

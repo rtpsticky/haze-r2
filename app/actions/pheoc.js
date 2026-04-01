@@ -175,5 +175,30 @@ export async function getPheocExportData() {
         }
     })
 
-    return reports
+    const roles = [...new Set(reports.map(r => r.recordedByRole).filter(Boolean))]
+    const locationIds = [...new Set(reports.map(r => r.locationId).filter(Boolean))]
+
+    let users = []
+    if (roles.length > 0 && locationIds.length > 0) {
+        users = await prisma.user.findMany({
+            where: {
+                role: { in: roles },
+                locationId: { in: locationIds }
+            },
+            select: { locationId: true, role: true, orgName: true }
+        })
+    }
+
+    const userMap = {}
+    users.forEach(u => {
+        // If there are multiple users with same location and role, just take the first one
+        if (!userMap[`${u.locationId}_${u.role}`]) {
+            userMap[`${u.locationId}_${u.role}`] = u.orgName
+        }
+    })
+
+    return reports.map(r => ({
+        ...r,
+        orgName: userMap[`${r.locationId}_${r.recordedByRole}`] || '-'
+    }))
 }

@@ -497,5 +497,23 @@ export async function getOperationsExportData() {
         }),
     ])
 
-    return { operations, localSupport, vulnerables }
+    const locationIds = [...new Set([
+        ...operations.map(o => o.locationId),
+        ...localSupport.map(l => l.locationId),
+        ...vulnerables.map(v => v.locationId)
+    ].filter(Boolean))]
+
+    let orgNameMap = {}
+    if (locationIds.length > 0) {
+        const users = await prisma.user.findMany({
+            where: { locationId: { in: locationIds } },
+            select: { locationId: true, orgName: true }
+        })
+
+        users.forEach(u => {
+            if (!orgNameMap[u.locationId]) orgNameMap[u.locationId] = u.orgName
+        })
+    }
+
+    return { operations, localSupport, vulnerables, orgNameMap }
 }

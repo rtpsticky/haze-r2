@@ -28,6 +28,7 @@ export default function ExportInventoryButton({ role }) {
                         'จังหวัด': item.location?.provinceName || '-',
                         'อำเภอ': item.location?.districtName || '-',
                         'ตำบล': item.location?.subDistrict || '-',
+                        'หน่วยงานที่รายงาน': item.orgName || '-',
                         'หน้ากาก Surgical Mask (ชิ้น) (รายวัน)': 0,
                         'หน้ากาก N95 (ชิ้น) (รายวัน)': 0,
                         'หน้ากากคาร์บอน': 0,

@@ -27,6 +27,7 @@ export default function ExportOperationsButton({ role }) {
                         'จังหวัด': locationObj?.provinceName || '-',
                         'อำเภอ': locationObj?.districtName || '-',
                         'ตำบล': locationObj?.subDistrict || '-',
+                        'หน่วยงานที่รายงาน': data.orgNameMap?.[locationId] || '-',
 
                         // Part 1
                         'ผู้ป่วยติดเตียงรวม(คน)': 0,
@@ -112,7 +113,19 @@ export default function ExportOperationsButton({ role }) {
                 }
             })
 
-            const exportData = Object.values(grouped).sort((a, b) => {
+            // Filter out empty rows where all numerical values are 0
+            const filteredData = Object.values(grouped).filter(item => {
+                let hasValue = false;
+                for (const [key, value] of Object.entries(item)) {
+                    if (typeof value === 'number' && value > 0) {
+                        hasValue = true;
+                        break;
+                    }
+                }
+                return hasValue;
+            });
+
+            const exportData = filteredData.sort((a, b) => {
                 const [dayA, monthA, yearA] = a['วันที่บันทึก'].split('/')
                 const dateA = new Date(yearA - 543, monthA - 1, dayA)
                 const [dayB, monthB, yearB] = b['วันที่บันทึก'].split('/')

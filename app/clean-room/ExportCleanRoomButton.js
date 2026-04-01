@@ -16,12 +16,24 @@ export default function ExportCleanRoomButton() {
                 return
             }
 
+            // Filter out empty records (everything is 0)
+            const filteredData = data.filter(item => 
+                (item.placeCount > 0) || 
+                (item.targetRoomCount > 0) || 
+                (item.passedStandard > 0) || 
+                (item.standard1Count > 0) || 
+                (item.standard2Count > 0) || 
+                (item.standard3Count > 0) || 
+                (item.serviceUserCount > 0)
+            )
+
             // Map data to Excel format (each placeType will be a row combined with its date and location)
-            const exportData = data.map((item) => ({
+            const exportData = filteredData.map((item) => ({
                 'วันที่บันทึก': new Date(item.recordDate).toLocaleDateString('th-TH'),
                 'จังหวัด': item.location?.provinceName || '-',
                 'อำเภอ': item.location?.districtName || '-',
                 'ตำบล': item.location?.subDistrict || '-',
+                'หน่วยงานที่รายงาน': item.orgName || '-',
                 'ประเภทสถานที่': item.placeType || '-',
                 'จำนวนสถานที่': item.placeCount || 0,
                 'เป้าหมายจำนวนห้อง': item.targetRoomCount || 0,

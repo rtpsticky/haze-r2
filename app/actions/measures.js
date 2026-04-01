@@ -124,5 +124,18 @@ export async function getMeasuresExportData() {
         }
     })
 
-    return measures
+    const usernames = [...new Set(measures.map(m => m.recordedBy))]
+    const users = await prisma.user.findMany({
+        where: { username: { in: usernames } },
+        select: { username: true, orgName: true }
+    })
+    const userMap = {}
+    users.forEach(u => {
+        userMap[u.username] = u.orgName
+    })
+
+    return measures.map(m => ({
+        ...m,
+        orgName: userMap[m.recordedBy] || '-'
+    }))
 }

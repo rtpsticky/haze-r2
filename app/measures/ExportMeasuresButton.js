@@ -25,6 +25,7 @@ export default function ExportMeasuresButton({ role }) {
                 'จังหวัด': item.location?.provinceName || '-',
                 'อำเภอ': item.location?.districtName || '-',
                 'ตำบล': item.location?.subDistrict || '-',
+                'หน่วยงานที่รายงาน': item.orgName || '-',
                 'ผู้บันทึก': item.recordedBy || '-',
             }))
 
