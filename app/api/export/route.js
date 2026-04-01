@@ -11,13 +11,8 @@ const provinceMapping = {
 };
 
 const mapEocStatus = (dbStatus) => {
-  if (!dbStatus) return 'not_opened';
   if (dbStatus === 'เปิด PHEOC') return 'opened';
-  if (dbStatus === 'ปิดศูนย์') return 'closed';
-  if (dbStatus === 'ยังไม่เปิด') return 'not_opened';
-  if (dbStatus === 'เฝ้าระวังปกติ') return 'normal_watch';
-  if (dbStatus === 'เฝ้าระวังใกล้ชิด') return 'close_watch';
-  return 'not_opened';
+  return 'closed';
 };
 
 const mapIncidentStatus = (status) => {
@@ -67,8 +62,12 @@ export async function GET(request) {
       prisma.pheocReport.findMany({
         where: {
           locationId: { in: locationIds },
-          reportDate: { gte: startOfDay, lte: endOfDay }
-        }
+          reportDate: { lte: endOfDay } // Get latest status up to the end of the selected day
+        },
+        orderBy: [
+          { reportDate: 'desc' },
+          { recordedAt: 'desc' }
+        ]
       }),
       prisma.vulnerableData.findMany({
         where: {
@@ -97,7 +96,7 @@ export async function GET(request) {
         province_id: provinceMapping[pName],
         report_date: dateParam,
         emergency: {
-          eoc_status: 'not_opened', // default
+          eoc_status: 'closed', // default
           vulnerable_groups_target: 0,
           clean_room_usage: 0
         },
@@ -111,17 +110,15 @@ export async function GET(request) {
       };
     }
 
-    // Process PHEOC - grab highest priority status
-    const statusPriority = { 'เปิด PHEOC': 4, 'เฝ้าระวังใกล้ชิด': 3, 'เฝ้าระวังปกติ': 2, 'ปิดศูนย์': 1, 'ยังไม่เปิด': 0 };
-    const currentStatusPriority = {};
+    // Process PHEOC - grab the latest status for each province
+    const handledProvincesForEoc = {};
     for (const report of pheocReports) {
       const loc = locations.find(l => l.id === report.locationId);
       if (loc && aggregatedData[loc.provinceName]) {
         const pName = loc.provinceName;
-        const pStatus = currentStatusPriority[pName] || -1;
-        const rStatus = statusPriority[report.status] !== undefined ? statusPriority[report.status] : -1;
-        if (rStatus > pStatus) {
-           currentStatusPriority[pName] = rStatus;
+        // Since pheocReports is ordered by date descending, the first one we see is the latest
+        if (!handledProvincesForEoc[pName]) {
+           handledProvincesForEoc[pName] = true;
            aggregatedData[pName].emergency.eoc_status = mapEocStatus(report.status);
         }
       }
