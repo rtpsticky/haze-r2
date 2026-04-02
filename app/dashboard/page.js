@@ -122,7 +122,12 @@ export default function DashboardPage() {
     const vulnerableTotal = vulnerableData.reduce((acc, curr) => acc + curr.value, 0);
 
     const inventoryData = stats.inventory?.byItem
-        ?.filter(i => !(i.name || '').includes('(รายวัน)'))
+        ?.filter(i => {
+            const name = i.name || '';
+            const hasPiece = name.includes('(ชิ้น)');
+            const hasNet = name.includes('(หลัง)');
+            return (hasPiece || hasNet) && !name.includes('(รายวัน)');
+        })
         .map(i => ({
             name: i.name,
             stock: i.count
@@ -500,7 +505,7 @@ export default function DashboardPage() {
                     <div className="px-4">
                         <h3 className="text-slate-500 font-semibold mb-6 flex items-center gap-2">
                             <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            หน้ากากอนามัยคงเหลือ
+                            เวชภัณฑ์และทรัพยากรคงเหลือ
                         </h3>
                         <div className="text-center mb-6">
                             <div className="text-4xl font-bold text-blue-600">{inventoryTotalFiltered.toLocaleString()}</div>
@@ -514,24 +519,32 @@ export default function DashboardPage() {
                                         cx="40%"
                                         cy="50%"
                                         innerRadius={45}
-                                        outerRadius={65}
+                                        outerRadius={70}
                                         paddingAngle={5}
                                         dataKey="stock"
                                     >
-                                        {inventoryData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS.chart[index % COLORS.chart.length]} />
-                                        ))}
+                                        {inventoryData.map((entry, index) => {
+                                            const name = entry.name || '';
+                                            let color = '#94A3B8'; // Default slate
+                                            if (name.includes('Surgical Mask')) color = '#10B981'; // Emerald 500
+                                            else if (name.includes('N95')) color = '#F59E0B';      // Amber 500
+                                            else if (name.includes('คาร์บอน')) color = '#4B5563'; // Gray 600
+                                            else if (name.includes('ผ้า')) color = '#EC4899';     // Pink 500
+                                            else if (name.includes('มุ้งสู้ฝุ่น')) color = '#06B6D4'; // Cyan 500
+                                            
+                                            return <Cell key={`cell-${index}`} fill={color} />;
+                                        })}
                                     </Pie>
-                                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                                     <Legend 
                                         layout="vertical" 
                                         align="right" 
                                         verticalAlign="middle" 
                                         iconType="circle"
-                                        wrapperStyle={{ fontSize: '12px', right: 0 }}
+                                        wrapperStyle={{ fontSize: '13px', right: 0 }}
                                         formatter={(value, entry) => {
                                             const qty = entry.payload?.stock ?? entry.payload?.value ?? entry.payload?.payload?.stock ?? 0;
-                                            return <span className="text-slate-600 ml-1">{value} ({qty.toLocaleString()})</span>;
+                                            return <span className="font-semibold ml-1" style={{ color: entry.color }}>{value} ({qty.toLocaleString()})</span>;
                                         }}
                                     />
                                 </PieChart>

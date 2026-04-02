@@ -127,16 +127,38 @@ export async function getDashboardStats(filters = {}) {
 
         const totalVulnerable = vulnerableStats.reduce((acc, cur) => acc + (cur._sum.targetCount || 0), 0);
 
-        // 4. InventoryLog Stats (Total Stock by Item) - FILTERED
-        const inventoryStats = await prisma.inventoryLog.groupBy({
-            by: ['itemName'],
+        // 4. InventoryLog Stats (Latest Snapshot by Location + Item) - FILTERED
+        // We need the latest record for each (locationId, itemName) pair
+        const allInventoryRecords = await prisma.inventoryLog.findMany({
             where: whereClause,
-            _sum: {
-                stockCount: true,
-            },
+            orderBy: [
+                { recordDate: 'desc' },
+                { id: 'desc' }
+            ]
         });
 
-        const totalInventoryStock = inventoryStats.reduce((acc, cur) => acc + (cur._sum.stockCount || 0), 0);
+        // Use a map to keep only the latest record for each (locationId, itemName)
+        const latestInventoryMap = new Map();
+        allInventoryRecords.forEach(record => {
+            const key = `${record.locationId}|${record.itemName}`;
+            if (!latestInventoryMap.has(key)) {
+                latestInventoryMap.set(key, { name: record.itemName, count: record.stockCount });
+            }
+        });
+
+        // Group by itemName and sum up the latest counts from all locations
+        const inventoryByItemMap = {};
+        latestInventoryMap.forEach((data) => {
+            if (!inventoryByItemMap[data.name]) inventoryByItemMap[data.name] = 0;
+            inventoryByItemMap[data.name] += data.count;
+        });
+
+        const inventoryStats = Object.entries(inventoryByItemMap).map(([name, count]) => ({
+            itemName: name,
+            _sum: { stockCount: count }
+        }));
+
+        const totalInventoryStock = Object.values(inventoryByItemMap).reduce((acc, count) => acc + count, 0);
 
         // 5. CleanRoomReport Stats (Total Rooms & Services) - FILTERED
         const cleanRoomStats = await prisma.cleanRoomReport.aggregate({
