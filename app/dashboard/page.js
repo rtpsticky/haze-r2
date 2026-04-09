@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import Select from 'react-select';
 import { getDashboardStats } from '@/app/actions/dashboard';
 import { getProvinces, getDistricts, getSubDistricts } from '@/app/actions/locations';
@@ -475,10 +475,10 @@ export default function DashboardPage() {
                                     contentStyle={{ backgroundColor: 'white', borderColor: '#E5E7EB', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                                     itemStyle={{ color: '#374151' }}
                                 />
-                                <Legend 
-                                    verticalAlign="middle" 
-                                    align="right" 
-                                    layout="vertical" 
+                                <Legend
+                                    verticalAlign="middle"
+                                    align="right"
+                                    layout="vertical"
                                     iconType="circle"
                                     wrapperStyle={{ fontSize: '13px' }}
                                     formatter={(value, entry) => <span className="text-slate-600 ml-1">{value} ({entry.payload?.value?.toLocaleString() || 0})</span>}
@@ -531,15 +531,15 @@ export default function DashboardPage() {
                                             else if (name.includes('คาร์บอน')) color = '#4B5563'; // Gray 600
                                             else if (name.includes('ผ้า')) color = '#EC4899';     // Pink 500
                                             else if (name.includes('มุ้งสู้ฝุ่น')) color = '#06B6D4'; // Cyan 500
-                                            
+
                                             return <Cell key={`cell-${index}`} fill={color} />;
                                         })}
                                     </Pie>
                                     <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                    <Legend 
-                                        layout="vertical" 
-                                        align="right" 
-                                        verticalAlign="middle" 
+                                    <Legend
+                                        layout="vertical"
+                                        align="right"
+                                        verticalAlign="middle"
                                         iconType="circle"
                                         wrapperStyle={{ fontSize: '13px', right: 0 }}
                                         formatter={(value, entry) => {
@@ -581,10 +581,10 @@ export default function DashboardPage() {
                                         ))}
                                     </Pie>
                                     <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                    <Legend 
-                                        layout="vertical" 
-                                        align="right" 
-                                        verticalAlign="middle" 
+                                    <Legend
+                                        layout="vertical"
+                                        align="right"
+                                        verticalAlign="middle"
                                         iconType="circle"
                                         wrapperStyle={{ fontSize: '12px', right: 0, width: '55%' }}
                                         formatter={(value, entry) => <span className="text-slate-600 ml-1">{value} ({entry.payload?.value?.toLocaleString() || 0})</span>}
@@ -623,10 +623,10 @@ export default function DashboardPage() {
                                         ))}
                                     </Pie>
                                     <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                                    <Legend 
-                                        layout="vertical" 
-                                        align="right" 
-                                        verticalAlign="middle" 
+                                    <Legend
+                                        layout="vertical"
+                                        align="right"
+                                        verticalAlign="middle"
                                         iconType="circle"
                                         wrapperStyle={{ fontSize: '12px', right: 0, width: '55%' }}
                                         formatter={(value, entry) => <span className="text-slate-600 ml-1">{value} ({entry.payload?.value?.toLocaleString() || 0})</span>}
@@ -636,6 +636,114 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
+                </div>
+
+                {/* Supply Snapshot Table - NEW */}
+                <div className="mt-12 overflow-x-auto">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-slate-500 font-semibold flex items-center gap-2">
+                            <span className="w-2 h-2 bg-slate-400 rounded-full"></span>
+                            ตารางการแจกเวชภัณฑ์ และคงเหลือ (Snapshot รายจังหวัด)
+                        </h3>
+                    </div>
+
+                    <table className="w-full text-sm text-left border-collapse min-w-[800px]">
+                        <thead>
+                            <tr className="bg-slate-50 border-y border-slate-200">
+                                <th rowSpan="2" className="px-4 py-4 font-bold text-slate-700 border-r border-slate-200 w-64">รายการเวชภัณฑ์</th>
+                                {['พิษณุโลก', 'อุตรดิตถ์', 'ตาก', 'สุโขทัย', 'เพชรบูรณ์'].map(p => (
+                                    <th key={p} colSpan="2" className="px-4 py-2 text-center font-bold text-slate-700 border-r border-slate-200 last:border-r-0">
+                                        {p}
+                                    </th>
+                                ))}
+                            </tr>
+                            <tr className="bg-slate-50/50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-medium">
+                                {['พิษณุโลก', 'อุตรดิตถ์', 'ตาก', 'สุโขทัย', 'เพชรบูรณ์'].map(p => (
+                                    <>
+                                        <th key={`${p}-out`} className="px-2 py-2 text-center border-r border-slate-100">จ่าย</th>
+                                        <th key={`${p}-stock`} className="px-2 py-2 text-center border-r border-slate-200 last:border-r-0">คงคลัง</th>
+                                    </>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {(() => {
+                                // Filter items to match the charts' logic
+                                const filteredItems = (stats.supplySnapshot || [])
+                                    .filter(item => {
+                                        const name = item.item || '';
+                                        // Case 1: Item is in Inventory chart (has units, not daily)
+                                        const passInventory = (name.includes('(ชิ้น)') || name.includes('(หลัง)')) && !name.includes('(รายวัน)');
+                                        // Case 2: Item has distribution data (pre-filtered for DUST_NET in action)
+                                        const hasDispatched = item.provinces.some(p => p.dispatched > 0);
+                                        return passInventory || hasDispatched;
+                                    })
+                                    .sort((a, b) => a.item.localeCompare(b.item, 'th'));
+
+                                if (filteredItems.length === 0) {
+                                    return (
+                                        <tr>
+                                            <td colSpan="11" className="px-4 py-8 text-center text-slate-400 italic">ไม่มีข้อมูลเวชภัณฑ์</td>
+                                        </tr>
+                                    );
+                                }
+
+                                return filteredItems.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                                        <td className="px-4 py-3 font-medium text-slate-800 border-r border-slate-100 bg-slate-50/30 whitespace-nowrap">{item.item}</td>
+                                        {['พิษณุโลก', 'อุตรดิตถ์', 'ตาก', 'สุโขทัย', 'เพชรบูรณ์'].map(p => {
+                                            const pData = item.provinces.find(pd => pd.province === p);
+                                            return (
+                                                <Fragment key={`${p}-${item.item}`}>
+                                                    <td className="px-4 py-3 text-center text-orange-600 font-semibold border-r border-slate-100">
+                                                        {pData?.dispatched > 0 ? pData.dispatched.toLocaleString() : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-center text-blue-600 font-semibold border-r border-slate-200 last:border-r-0">
+                                                        {pData?.stock > 0 ? pData.stock.toLocaleString() : '-'}
+                                                    </td>
+                                                </Fragment>
+                                            );
+                                        })}
+                                    </tr>
+                                ))
+                            })()}
+                        </tbody>
+                        <tfoot className="bg-slate-50/80 border-t-2 border-slate-200 font-bold">
+                            <tr>
+                                <td className="px-4 py-3 text-slate-700 border-r border-slate-200">รวมทั้งหมด</td>
+                                {['พิษณุโลก', 'อุตรดิตถ์', 'ตาก', 'สุโขทัย', 'เพชรบูรณ์'].map(p => {
+                                    const filteredItems = (stats.supplySnapshot || []).filter(item => {
+                                        const name = item.item || '';
+                                        const passInventory = (name.includes('(ชิ้น)') || name.includes('(หลัง)')) && !name.includes('(รายวัน)');
+                                        const hasDispatched = item.provinces.some(p => p.dispatched > 0);
+                                        return passInventory || hasDispatched;
+                                    });
+
+                                    const totalDispatched = filteredItems.reduce((acc, item) => {
+                                        const pData = item.provinces.find(pd => pd.province === p);
+                                        return acc + (pData?.dispatched || 0);
+                                    }, 0);
+
+                                    const totalStock = filteredItems.reduce((acc, item) => {
+                                        // Stock only counts if it passes inventory filter
+                                        const name = item.item || '';
+                                        const passInventory = (name.includes('(ชิ้น)') || name.includes('(หลัง)')) && !name.includes('(รายวัน)');
+                                        if (!passInventory) return acc;
+
+                                        const pData = item.provinces.find(pd => pd.province === p);
+                                        return acc + (pData?.stock || 0);
+                                    }, 0);
+
+                                    return (
+                                        <Fragment key={`total-${p}`}>
+                                            <td className="px-2 py-3 text-center text-orange-700 border-r border-slate-100">{totalDispatched.toLocaleString()}</td>
+                                            <td className="px-2 py-3 text-center text-blue-700 border-r border-slate-200 last:border-r-0">{totalStock.toLocaleString()}</td>
+                                        </Fragment>
+                                    );
+                                })}
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </section >
 

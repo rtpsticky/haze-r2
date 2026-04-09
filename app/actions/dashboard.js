@@ -20,6 +20,16 @@ export async function getDashboardStats(filters = {}) {
             }
         }
 
+        const normalizeItemName = (name) => {
+            if (!name) return name;
+            const n = name.toLowerCase();
+            if (n.includes('คาร์บอน') || n.includes('carbon mask')) return 'หน้ากากคาร์บอน (ชิ้น)';
+            if (n.includes('หน้ากากผ้า') || n.includes('cloth mask')) return 'หน้ากากผ้า (ชิ้น)';
+            if (n.includes('n95')) return 'หน้ากาก N95 (ชิ้น)';
+            if (n.includes('surgical') || n.includes('หน้ากากอนามัย')) return 'หน้ากาก Surgical Mask (ชิ้น)';
+            return name;
+        };
+
         // 1. MeasureLog Stats (Group by Status) - FILTERED
         const measureStats = await prisma.measureLog.groupBy({
             by: ['status'],
@@ -140,9 +150,9 @@ export async function getDashboardStats(filters = {}) {
         // Use a map to keep only the latest record for each (locationId, itemName)
         const latestInventoryMap = new Map();
         allInventoryRecords.forEach(record => {
-            const key = `${record.locationId}|${record.itemName}`;
+            const key = `${record.locationId}|${normalizeItemName(record.itemName)}`;
             if (!latestInventoryMap.has(key)) {
-                latestInventoryMap.set(key, { name: record.itemName, count: record.stockCount });
+                latestInventoryMap.set(key, { name: normalizeItemName(record.itemName), count: record.stockCount });
             }
         });
 
@@ -191,6 +201,72 @@ export async function getDashboardStats(filters = {}) {
             _sum: {
                 amount: true
             }
+        });
+
+        // 10. Supply Snapshot (By Province and Item) - NEW
+        const operationByProvinceAndItem = await prisma.operationLog.groupBy({
+            where: {
+                ...whereClause,
+                itemName: { not: null },
+                activityType: { not: 'DUST_NET' }
+            },
+            by: ['itemName', 'locationId'],
+            _sum: {
+                amount: true
+            }
+        });
+
+        // Get Locations to map locationId to province
+        const locations = await prisma.location.findMany();
+        const locationMap = new Map(locations.map(l => [l.id, l]));
+
+        // Final Supply Snapshot Structure
+        // We need to sum the latest counts per location into province/item buckets
+        const itemsSet = new Set();
+        const provincesSet = new Set();
+        const provinceItemStockMap = {}; // key: "province|item"
+
+        // Use the latestInventoryMap we already built (which is latest per location/item)
+        latestInventoryMap.forEach((data, key) => {
+            const [locationId, itemName] = key.split('|');
+            const loc = locationMap.get(parseInt(locationId));
+            if (!loc) return;
+
+            const province = loc.provinceName;
+            const item = data.name;
+            const piKey = `${province}|${item}`;
+
+            if (!provinceItemStockMap[piKey]) provinceItemStockMap[piKey] = 0;
+            provinceItemStockMap[piKey] += data.count;
+
+            itemsSet.add(item);
+            provincesSet.add(province);
+        });
+
+        // Process Operation (Distribution) sum
+        const provinceOperationMap = {};
+        operationByProvinceAndItem.forEach(record => {
+            const loc = locationMap.get(record.locationId);
+            if (!loc) return;
+            const province = loc.provinceName;
+            const item = normalizeItemName(record.itemName);
+            const key = `${province}|${item}`;
+            if (!provinceOperationMap[key]) provinceOperationMap[key] = 0;
+            provinceOperationMap[key] += record._sum.amount || 0;
+            itemsSet.add(item);
+            provincesSet.add(province);
+        });
+
+        const supplySnapshot = Array.from(itemsSet).map(item => {
+            const provinces = Array.from(provincesSet).map(province => {
+                const key = `${province}|${item}`;
+                return {
+                    province,
+                    stock: provinceItemStockMap[key] || 0,
+                    dispatched: provinceOperationMap[key] || 0
+                };
+            });
+            return { item, provinces };
         });
 
         // 7. ActiveCareLog Stats - FILTERED
@@ -263,6 +339,7 @@ export async function getDashboardStats(filters = {}) {
                 totalStock: totalInventoryStock,
                 byItem: inventoryStats.map(i => ({ name: i.itemName, count: i._sum.stockCount || 0 })),
             },
+            supplySnapshot, // NEW
             cleanRoom: {
                 ...cleanRoomStats._sum,
                 byType: cleanRoomByType.map(t => ({
@@ -278,7 +355,7 @@ export async function getDashboardStats(filters = {}) {
                 detailed: operationStats.map(o => ({
                     activity: o.activityType,
                     target: o.targetGroup,
-                    item: o.itemName,
+                    item: normalizeItemName(o.itemName),
                     amount: o._sum.amount || 0
                 })),
                 // Keep backward compatibility for summary if needed, or calculate from detailed
