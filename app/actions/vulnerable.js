@@ -10,9 +10,10 @@ export async function getVulnerableData(dateStr) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
+        include: { location: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
+    if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
 
     const targetDate = new Date(dateStr)
     // Create Date range for the whole day to be safe, or just match the exact date stored if we store specific time.
@@ -26,14 +27,23 @@ export async function getVulnerableData(dateStr) {
     const endOfDay = new Date(targetDate)
     endOfDay.setHours(23, 59, 59, 999)
 
-    const data = await prisma.vulnerableData.findMany({
-        where: {
-            locationId: user.locationId,
-            recordDate: {
-                gte: startOfDay,
-                lte: endOfDay
-            }
+    let whereClause = {
+        recordDate: {
+            gte: startOfDay,
+            lte: endOfDay
         }
+    }
+    
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
+        // can see all
+    } else if (user.role === 'SSJ') {
+        whereClause.location = { provinceName: user.location?.provinceName }
+    } else {
+        whereClause.locationId = user.locationId
+    }
+
+    const data = await prisma.vulnerableData.findMany({
+        where: whereClause
     })
 
     return data
@@ -169,12 +179,19 @@ export async function getVulnerableHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true }
+        include: { location: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
+    if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
 
-    const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
+    let where = {}
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
+        where = {}
+    } else if (user.role === 'SSJ') {
+        where = { location: { provinceName: user.location?.provinceName } }
+    } else {
+        where = { locationId: user.locationId }
+    }
 
     const data = await prisma.vulnerableData.findMany({
         where,
@@ -261,16 +278,18 @@ export async function getVulnerableExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        include: { location: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
+    if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         return null
     }
 
     let whereClause = {}
     if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
+    } else if (user.role === 'SSJ') {
+        whereClause = { location: { provinceName: user.location?.provinceName } }
     } else {
         whereClause = { locationId: user.locationId }
     }

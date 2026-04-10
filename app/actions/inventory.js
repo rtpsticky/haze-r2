@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { getReadScopeWhere } from '@/lib/location-access'
 
 export async function getInventoryData(dateStr) {
     const session = await getSession()
@@ -151,12 +152,12 @@ export async function getInventoryHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true }
+        include: { location: true }
     })
 
     if (!user) return []
 
-    const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
+    const where = getReadScopeWhere(user)
 
     const data = await prisma.inventoryLog.findMany({
         where,
@@ -241,19 +242,14 @@ export async function getInventoryExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        include: { location: true }
     })
 
     if (!user) {
         return null
     }
 
-    let whereClause = {}
-    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
-        whereClause = {}
-    } else {
-        whereClause = { locationId: user.locationId }
-    }
+    const whereClause = getReadScopeWhere(user)
 
     const records = await prisma.inventoryLog.findMany({
         where: whereClause,

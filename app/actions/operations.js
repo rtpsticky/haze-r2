@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { canReadLocation, getReadScopeWhere } from '@/lib/location-access'
 
 export async function getOperationData(dateString, requestedLocationId) {
     const session = await getSession()
@@ -20,8 +21,7 @@ export async function getOperationData(dateString, requestedLocationId) {
     if (requestedLocationId) {
         locationId = parseInt(requestedLocationId)
 
-        // Permission Check
-        if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && locationId !== user.locationId) {
+        if (!(await canReadLocation(prisma, user, locationId))) {
             return { success: false, error: 'Unauthorized location access' }
         }
 
@@ -91,14 +91,14 @@ export async function getOperationHistory(locationId) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        include: { location: true }
     })
     if (!user) return { success: false, error: 'User not found' }
 
     const id = parseInt(locationId)
 
     // Permission Check
-    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && id !== user.locationId) {
+    if (!(await canReadLocation(prisma, user, id))) {
         return { success: false, error: 'Unauthorized location access' }
     }
 
@@ -463,19 +463,14 @@ export async function getOperationsExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        include: { location: true }
     })
 
     if (!user) {
         return null
     }
 
-    let whereClause = {}
-    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
-        whereClause = {}
-    } else {
-        whereClause = { locationId: user.locationId }
-    }
+    const whereClause = getReadScopeWhere(user)
 
     // Fetch operations, vulnerables, admin support
     const [operations, localSupport, vulnerables] = await Promise.all([

@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { canReadLocation, getReadScopeWhere } from '@/lib/location-access'
 
 export async function getActiveCareData(dateString, requestedLocationId = null) {
     const session = await getSession()
@@ -14,7 +15,7 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        include: { location: true }
     })
 
     let locationIdToUse = requestedLocationId
@@ -23,7 +24,7 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
         if (user) locationIdToUse = user.locationId
     } else {
         // Enforce permission for requested location
-        if (user?.role !== 'ADMIN' && user?.role !== 'HEALTH_REGION' && parseInt(locationIdToUse) !== user.locationId) {
+        if (!(await canReadLocation(prisma, user, locationIdToUse))) {
             return { success: false, error: 'Unauthorized location access' }
         }
     }
@@ -76,14 +77,14 @@ export async function getActiveCareHistory(locationId) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        include: { location: true }
     })
     if (!user) return { success: false, error: 'User not found' }
 
     const id = parseInt(locationId)
 
     // Permission Check
-    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && id !== user.locationId) {
+    if (!(await canReadLocation(prisma, user, id))) {
         return { success: false, error: 'Unauthorized location access' }
     }
 
@@ -259,14 +260,11 @@ export async function getActiveCareExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        include: { location: true }
     })
     if (!user) return null
 
-    let whereClause = {}
-    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
-        whereClause = { locationId: user.locationId }
-    }
+    const whereClause = getReadScopeWhere(user)
 
     const [activeCares, adminSupport] = await Promise.all([
         prisma.activeCareLog.findMany({

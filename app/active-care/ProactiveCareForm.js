@@ -204,6 +204,11 @@ export default function ProactiveCareForm({ user }) {
 
     const handleCareChange = (act, field, val) => setFormData(p => ({ ...p, activeCares: { ...p.activeCares, [act]: { ...p.activeCares[act], [field]: val } } }))
     const handleSupportChange = (field, val) => setFormData(p => ({ ...p, localSupport: { ...p.localSupport, [field]: val } }))
+    const canEdit = !!user?.role && (
+        user?.role === 'ADMIN' ||
+        user?.role === 'HEALTH_REGION' ||
+        parseInt(currentLocationId) === user?.locationId
+    )
 
     return (
         <div className="relative font-sarabun text-slate-800 animate-fade-in-up">

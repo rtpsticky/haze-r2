@@ -151,7 +151,7 @@ export async function getPheocExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        include: { location: true }
     })
 
     if (!user) {
@@ -162,7 +162,7 @@ export async function getPheocExportData() {
     if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
     } else if (user.role === 'SSJ') {
-        whereClause = { locationId: user.locationId }
+        whereClause = { location: { provinceName: user.location?.provinceName } }
     } else {
         return null // Should not reach here due to page level check, but for safety
     }

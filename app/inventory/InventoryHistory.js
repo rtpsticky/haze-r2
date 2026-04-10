@@ -47,7 +47,7 @@ export default function InventoryHistory({ history, isAdmin, userRole }) {
         )
     }
 
-    const canEdit = ['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION'].includes(userRole)
+    const canEdit = ['SSO', 'ADMIN', 'HEALTH_REGION'].includes(userRole)
 
     return (
         <>

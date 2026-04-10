@@ -293,7 +293,11 @@ export default function OperationalResultsForm({ user }) {
     const handlePPEChange = (group, item, val) => setFormData(p => ({ ...p, [group]: { ...p[group], [item]: val } }))
     const handleChange = (field, val) => setFormData(p => ({ ...p, [field]: val }))
 
-    const canEdit = !!user?.role
+    const canEdit = !!user?.role && (
+        user?.role === 'ADMIN' ||
+        user?.role === 'HEALTH_REGION' ||
+        parseInt(currentLocationId) === user?.locationId
+    )
 
     return (
         <div className="relative font-sarabun text-slate-800 animate-fade-in-up">
