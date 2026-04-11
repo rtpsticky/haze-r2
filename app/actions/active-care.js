@@ -68,40 +68,61 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
     }
 }
 
-export async function getActiveCareHistory(locationId) {
+export async function getActiveCareHistory(locationId = null) {
     const session = await getSession()
     if (!session) return { success: false, error: 'Unauthorized' }
 
-    if (!locationId) return { success: true, data: [] }
-
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        select: { locationId: true, role: true, location: { select: { provinceName: true } } }
     })
     if (!user) return { success: false, error: 'User not found' }
 
-    const id = parseInt(locationId)
+    let where = {}
+    if (locationId) {
+        const id = parseInt(locationId)
+        // Permission Check
+        let hasAccess = false
+        if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
+            hasAccess = true
+        } else if (user.role === 'SSJ') {
+            const targetLoc = await prisma.location.findUnique({ where: { id: id } })
+            if (targetLoc && targetLoc.provinceName === user.location.provinceName) {
+                hasAccess = true
+            }
+        } else if (id === user.locationId) {
+            hasAccess = true
+        }
 
-    // Permission Check
-    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && id !== user.locationId) {
-        return { success: false, error: 'Unauthorized location access' }
+        if (!hasAccess) {
+            return { success: false, error: 'Unauthorized location access' }
+        }
+        where = { locationId: id }
+    } else {
+        // No locationId provided, use role-based default
+        if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
+            where = {}
+        } else if (user.role === 'SSJ') {
+            where = { location: { provinceName: user.location.provinceName } }
+        } else {
+            where = { locationId: user.locationId }
+        }
     }
 
-    // Fetch distinct dates from active care logs and local admin support
+    // Fetch distinct dates
     const [activeDates, supportDates] = await Promise.all([
         prisma.activeCareLog.findMany({
-            where: { locationId: id },
+            where,
             select: { recordDate: true },
             distinct: ['recordDate']
         }),
         prisma.localAdminSupport.findMany({
-            where: { locationId: id },
+            where,
             select: { recordDate: true },
             distinct: ['recordDate']
         })
     ])
 
-    // Combine and Deduplicate
     const allDates = new Set([
         ...activeDates.map(d => d.recordDate.toISOString().split('T')[0]),
         ...supportDates.map(d => d.recordDate.toISOString().split('T')[0])
@@ -259,13 +280,15 @@ export async function getActiveCareExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        select: { role: true, locationId: true, location: { select: { provinceName: true } } }
     })
     if (!user) return null
 
-    let whereClause = {}
-    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
-        whereClause = { locationId: user.locationId }
+    let whereClause = { locationId: user.locationId }
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
+        whereClause = {}
+    } else if (user.role === 'SSJ') {
+        whereClause = { location: { provinceName: user.location.provinceName } }
     }
 
     const [activeCares, adminSupport] = await Promise.all([

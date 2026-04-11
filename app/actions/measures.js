@@ -98,7 +98,7 @@ export async function getMeasuresExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        select: { role: true, locationId: true, location: { select: { provinceName: true } } }
     })
 
     if (!user) {
@@ -109,11 +109,11 @@ export async function getMeasuresExportData() {
         return null
     }
 
-    let whereClause = {}
+    let whereClause = { locationId: user.locationId }
     if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
-    } else {
-        whereClause = { locationId: user.locationId }
+    } else if (user.role === 'SSJ') {
+        whereClause = { location: { provinceName: user.location.provinceName } }
     }
 
     const measures = await prisma.measureLog.findMany({

@@ -178,12 +178,17 @@ export async function getCleanRoomHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true }
+        select: { id: true, locationId: true, role: true, location: { select: { provinceName: true } } }
     })
 
     if (!user) return []
 
-    const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
+    let where = { locationId: user.locationId }
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
+        where = {}
+    } else if (user.role === 'SSJ') {
+        where = { location: { provinceName: user.location.provinceName } }
+    }
 
     const data = await prisma.cleanRoomReport.findMany({
         where,
@@ -272,18 +277,18 @@ export async function getCleanRoomExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        select: { role: true, locationId: true, location: { select: { provinceName: true } } }
     })
 
     if (!user) {
         return null
     }
 
-    let whereClause = {}
+    let whereClause = { locationId: user.locationId }
     if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
-    } else {
-        whereClause = { locationId: user.locationId }
+    } else if (user.role === 'SSJ') {
+        whereClause = { location: { provinceName: user.location.provinceName } }
     }
 
     const records = await prisma.cleanRoomReport.findMany({

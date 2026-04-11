@@ -83,39 +83,61 @@ export async function getOperationData(dateString, requestedLocationId) {
 
 }
 
-export async function getOperationHistory(locationId) {
+export async function getOperationHistory(locationId = null) {
     const session = await getSession()
     if (!session) return { success: false, error: 'Unauthorized' }
 
-    if (!locationId) return { success: true, data: [] }
-
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        select: { locationId: true, role: true, location: { select: { provinceName: true } } }
     })
     if (!user) return { success: false, error: 'User not found' }
 
-    const id = parseInt(locationId)
+    let where = {}
+    if (locationId) {
+        const id = parseInt(locationId)
+        // Permission Check
+        let hasAccess = false
+        if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
+            hasAccess = true
+        } else if (user.role === 'SSJ') {
+            const targetLoc = await prisma.location.findUnique({ where: { id: id } })
+            if (targetLoc && targetLoc.provinceName === user.location.provinceName) {
+                hasAccess = true
+            }
+        } else if (id === user.locationId) {
+            hasAccess = true
+        }
 
-    // Permission Check
-    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && id !== user.locationId) {
-        return { success: false, error: 'Unauthorized location access' }
+        if (!hasAccess) {
+            return { success: false, error: 'Unauthorized location access' }
+        }
+        where = { locationId: id }
+    } else {
+        // No locationId provided, use role-based default
+        if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
+            where = {}
+        } else if (user.role === 'SSJ') {
+            where = { location: { provinceName: user.location.provinceName } }
+        } else {
+            where = { locationId: user.locationId }
+        }
     }
 
     // Fetch distinct dates from all relevant tables
     const [opsDates, vulnDates, supportDates] = await Promise.all([
         prisma.operationLog.findMany({
-            where: { locationId: id },
+            where,
             select: { recordDate: true },
             distinct: ['recordDate']
         }),
         prisma.vulnerableData.findMany({
-            where: { locationId: id },
+            where: { ...where, groupType: 'BEDRIDDEN_OP' },
             select: { recordDate: true },
             distinct: ['recordDate']
         }),
         prisma.localAdminSupport.findMany({
-            where: { locationId: id },
+            where,
             select: { recordDate: true },
             distinct: ['recordDate']
         })
@@ -463,18 +485,18 @@ export async function getOperationsExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        select: { role: true, locationId: true, location: { select: { provinceName: true } } }
     })
 
     if (!user) {
         return null
     }
 
-    let whereClause = {}
+    let whereClause = { locationId: user.locationId }
     if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
-    } else {
-        whereClause = { locationId: user.locationId }
+    } else if (user.role === 'SSJ') {
+        whereClause = { location: { provinceName: user.location.provinceName } }
     }
 
     // Fetch operations, vulnerables, admin support

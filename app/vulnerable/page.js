@@ -21,7 +21,7 @@ export default async function Page() {
     }
 
     const user = await getUser(session.userId)
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
+    if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         redirect('/')
     }
     const history = await getVulnerableHistory()

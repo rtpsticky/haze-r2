@@ -169,12 +169,17 @@ export async function getVulnerableHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true }
+        select: { id: true, locationId: true, role: true, location: { select: { provinceName: true } } }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
+    if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
 
-    const where = (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') ? {} : { locationId: user.locationId }
+    let where = { locationId: user.locationId }
+    if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
+        where = {}
+    } else if (user.role === 'SSJ') {
+        where = { location: { provinceName: user.location.provinceName } }
+    }
 
     const data = await prisma.vulnerableData.findMany({
         where,
@@ -261,18 +266,18 @@ export async function getVulnerableExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        select: { role: true, locationId: true, location: { select: { provinceName: true } } }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
+    if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         return null
     }
 
-    let whereClause = {}
+    let whereClause = { locationId: user.locationId }
     if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
         whereClause = {}
-    } else {
-        whereClause = { locationId: user.locationId }
+    } else if (user.role === 'SSJ') {
+        whereClause = { location: { provinceName: user.location.provinceName } }
     }
 
     const records = await prisma.vulnerableData.findMany({
