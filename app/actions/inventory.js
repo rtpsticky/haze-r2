@@ -27,11 +27,19 @@ export async function getInventoryData(dateStr) {
             recordDate: {
                 gte: startOfDay,
                 lte: endOfDay
-            }
+            },
+            // Filter by item name containing our org name if PCU/HOSPITAL
+            itemName: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                ? { contains: `[${user.orgName}]` } 
+                : undefined
         }
     })
 
-    return data
+    // Strip [orgName] from results for the form to match its keys
+    return data.map(record => ({
+        ...record,
+        itemName: record.itemName.split(' [')[0]
+    }))
 }
 
 export async function saveInventoryData(prevState, formData) {
@@ -63,11 +71,14 @@ export async function saveInventoryData(prevState, formData) {
         for (const item of items) {
             const countStr = formData.get(item.key)
             const count = parseInt(countStr) || 0
+            
+            // Append orgName to itemName for isolation
+            const isolatedItemName = `${item.label} [${user.orgName}]`
 
             const existing = await prisma.inventoryLog.findFirst({
                 where: {
                     locationId: user.locationId,
-                    itemName: item.label,
+                    itemName: isolatedItemName,
                     recordDate: recordDate
                 }
             })
@@ -80,7 +91,7 @@ export async function saveInventoryData(prevState, formData) {
             } else {
                 await prisma.inventoryLog.create({
                     data: {
-                        itemName: item.label,
+                        itemName: isolatedItemName,
                         stockCount: count,
                         recordDate: recordDate,
                         locationId: user.locationId
@@ -161,6 +172,11 @@ export async function getInventoryHistory() {
         where = {}
     } else if (user.role === 'SSJ') {
         where = { location: { provinceName: user.location.provinceName } }
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
+        where = { 
+            locationId: user.locationId,
+            itemName: { contains: `[${user.orgName}]` }
+        }
     }
 
     const data = await prisma.inventoryLog.findMany({
@@ -173,24 +189,41 @@ export async function getInventoryHistory() {
         }
     })
 
-    // Group by date and location
+    // Post-process data to strip [orgName] and identify orgName from itemName for admins/SSJ
+    const processedData = data.map(record => {
+        const parts = record.itemName.split(' [')
+        const itemName = parts[0]
+        const extractedOrg = parts[1] ? parts[1].replace(']', '') : (record.location?.districtName || '')
+        
+        return {
+            ...record,
+            originalItemName: record.itemName,
+            itemName: itemName,
+            orgNameFromItem: extractedOrg
+        }
+    })
+
+    // Group by date, location AND organization (extracted from itemName)
     const history = {}
-    data.forEach(record => {
+    processedData.forEach(record => {
         const dateStr = record.recordDate.toISOString().split('T')[0]
-        const locationKey = record.locationId
-        const key = `${dateStr}-${locationKey}`
+        const orgKey = record.orgNameFromItem
+        const key = `${dateStr}-${record.locationId}-${orgKey}`
 
         if (!history[key]) {
             history[key] = {
                 date: dateStr,
                 locationId: record.locationId,
-                locationName: record.location?.districtName || record.location?.provinceName || '',
+                locationName: record.orgNameFromItem || record.location?.districtName || '',
                 totalItems: 0,
                 records: []
             }
         }
         history[key].totalItems += record.stockCount
-        history[key].records.push(record)
+        history[key].records.push({
+            ...record,
+            itemName: record.itemName // Use stripped name for UI
+        })
     })
 
     return Object.values(history).sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -202,7 +235,7 @@ export async function deleteInventoryReport(dateStr, targetLocationId) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true }
+        select: { id: true, locationId: true, role: true, orgName: true }
     })
 
     if (!user) return { success: false, message: 'User not found' }
@@ -227,7 +260,11 @@ export async function deleteInventoryReport(dateStr, targetLocationId) {
                 recordDate: {
                     gte: startOfDay,
                     lte: endOfDay
-                }
+                },
+                // If not admin, delete only your org's items
+                itemName: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                    ? { contains: `[${user.orgName}]` } 
+                    : undefined
             }
         })
         revalidatePath('/inventory')
@@ -246,7 +283,7 @@ export async function getInventoryExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true, location: { select: { provinceName: true } } }
+        select: { role: true, locationId: true, orgName: true, location: { select: { provinceName: true } } }
     })
 
     if (!user) {
@@ -258,6 +295,13 @@ export async function getInventoryExportData() {
         whereClause = {}
     } else if (user.role === 'SSJ') {
         whereClause = { location: { provinceName: user.location.provinceName } }
+    } else if (user.role === 'SSO') {
+        whereClause = { locationId: user.locationId }
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
+        whereClause = { 
+            locationId: user.locationId,
+            itemName: { contains: `[${user.orgName}]` }
+        }
     }
 
     const records = await prisma.inventoryLog.findMany({
@@ -268,27 +312,15 @@ export async function getInventoryExportData() {
         }
     })
 
-    const locationIds = [...new Set(records.map(r => r.locationId).filter(Boolean))]
+    return records.map(r => {
+        const parts = r.itemName.split(' [')
+        const itemName = parts[0]
+        const extractedOrg = parts[1] ? parts[1].replace(']', '') : (r.location?.districtName || '-')
 
-    let users = []
-    if (locationIds.length > 0) {
-        users = await prisma.user.findMany({
-            where: {
-                locationId: { in: locationIds }
-            },
-            select: { locationId: true, orgName: true, role: true }
-        })
-    }
-
-    const locToOrgMap = {}
-    users.forEach(u => {
-        if (!locToOrgMap[u.locationId]) {
-            locToOrgMap[u.locationId] = u.orgName
+        return {
+            ...r,
+            itemName: itemName,
+            orgName: extractedOrg
         }
     })
-
-    return records.map(r => ({
-        ...r,
-        orgName: locToOrgMap[r.locationId] || '-'
-    }))
 }

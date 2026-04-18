@@ -27,9 +27,19 @@ export async function getCleanRoomData(dateStr) {
             recordDate: {
                 gte: startOfDay,
                 lte: endOfDay
-            }
+            },
+            // Filter by place type containing our org name if PCU/HOSPITAL
+            placeType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                ? { contains: `[${user.orgName}]` } 
+                : undefined
         }
     })
+
+    // Strip [orgName] from results for UI matching
+    return data.map(record => ({
+        ...record,
+        placeType: record.placeType.split(' [')[0]
+    }))
 
     return data
 }
@@ -81,16 +91,19 @@ export async function saveCleanRoomData(prevState, formData) {
             const standard3Count = parseInt(formData.get(`${placeType}_standard3Count`)) || 0
             const serviceUserCount = parseInt(formData.get(`${placeType}_serviceUserCount`)) || 0
 
+            // Append orgName to placeType for isolation
+            const isolatedPlaceType = `${placeType} [${user.orgName}]`
+
             const existing = await prisma.cleanRoomReport.findFirst({
                 where: {
                     locationId: user.locationId,
-                    placeType: placeType,
+                    placeType: isolatedPlaceType,
                     recordDate: recordDate
                 }
             })
 
             const data = {
-                placeType,
+                placeType: isolatedPlaceType,
                 placeCount,
                 targetRoomCount,
                 passedStandard,
@@ -188,6 +201,11 @@ export async function getCleanRoomHistory() {
         where = {}
     } else if (user.role === 'SSJ') {
         where = { location: { provinceName: user.location.provinceName } }
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
+        where = { 
+            locationId: user.locationId,
+            placeType: { contains: `[${user.orgName}]` }
+        }
     }
 
     const data = await prisma.cleanRoomReport.findMany({
@@ -200,20 +218,34 @@ export async function getCleanRoomHistory() {
         }
     })
 
+    // Post-process data to strip [orgName] and identify orgName from placeType
+    const processedData = data.map(record => {
+        const parts = record.placeType.split(' [')
+        const placeType = parts[0]
+        const extractedOrg = parts[1] ? parts[1].replace(']', '') : (record.location?.districtName || '')
+        
+        return {
+            ...record,
+            originalPlaceType: record.placeType,
+            placeType: placeType,
+            orgNameFromType: extractedOrg
+        }
+    })
+
     // Group by date and location
     const history = {}
 
-    data.forEach(record => {
+    processedData.forEach(record => {
         const dateStr = record.recordDate.toISOString().split('T')[0]
-        const locationKey = record.locationId
-        const key = `${dateStr}-${locationKey}`
+        const orgKey = record.orgNameFromType
+        const key = `${dateStr}-${record.locationId}-${orgKey}`
 
         if (!history[key]) {
             history[key] = {
-                recordDate: record.recordDate, // Keep as Date object or string? Original returned object with recordDate
+                recordDate: record.recordDate,
                 dateStr: dateStr,
                 locationId: record.locationId,
-                locationName: record.location?.districtName || record.location?.provinceName || '',
+                locationName: record.orgNameFromType || record.location?.districtName || '',
                 totalPassed: 0,
                 totalTarget: 0,
                 totalPlaces: 0
@@ -257,7 +289,11 @@ export async function deleteCleanRoomReport(dateStr, targetLocationId) {
         await prisma.cleanRoomReport.deleteMany({
             where: {
                 locationId: deleteLocationId,
-                recordDate: date
+                recordDate: date,
+                // If not admin, delete only your org's items
+                placeType: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                    ? { contains: `[${user.orgName}]` } 
+                    : undefined
             }
         })
 
@@ -289,6 +325,11 @@ export async function getCleanRoomExportData() {
         whereClause = {}
     } else if (user.role === 'SSJ') {
         whereClause = { location: { provinceName: user.location.provinceName } }
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
+        whereClause = { 
+            locationId: user.locationId,
+            placeType: { contains: `[${user.orgName}]` }
+        }
     }
 
     const records = await prisma.cleanRoomReport.findMany({
@@ -299,27 +340,15 @@ export async function getCleanRoomExportData() {
         }
     })
 
-    const locationIds = [...new Set(records.map(r => r.locationId).filter(Boolean))]
+    return records.map(r => {
+        const parts = r.placeType.split(' [')
+        const placeType = parts[0]
+        const extractedOrg = parts[1] ? parts[1].replace(']', '') : (r.location?.districtName || '-')
 
-    let users = []
-    if (locationIds.length > 0) {
-        users = await prisma.user.findMany({
-            where: {
-                locationId: { in: locationIds }
-            },
-            select: { locationId: true, orgName: true, role: true }
-        })
-    }
-
-    const locToOrgMap = {}
-    users.forEach(u => {
-        if (!locToOrgMap[u.locationId]) {
-            locToOrgMap[u.locationId] = u.orgName
+        return {
+            ...r,
+            placeType: placeType,
+            orgName: extractedOrg
         }
     })
-
-    return records.map(r => ({
-        ...r,
-        orgName: locToOrgMap[r.locationId] || '-'
-    }))
 }

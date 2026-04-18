@@ -39,7 +39,11 @@ export async function getOperationData(dateString, requestedLocationId) {
         prisma.operationLog.findMany({
             where: {
                 locationId: locationId,
-                recordDate: date
+                recordDate: date,
+                // Filter by activityType containing our org name if PCU/HOSPITAL
+                activityType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                    ? { contains: `[${user.orgName}]` } 
+                    : undefined
             }
         }),
         prisma.localAdminSupport.findFirst({
@@ -66,18 +70,33 @@ export async function getOperationData(dateString, requestedLocationId) {
             locationId: locationId,
             recordDate: {
                 lte: date
-            }
+            },
+            // Filter by activityType containing our org name if PCU/HOSPITAL
+            activityType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                ? { contains: `[${user.orgName}]` } 
+                : undefined
         }
     })
+
+    // Strip [orgName] for the form
+    const processedOperations = operations.map(op => ({
+        ...op,
+        activityType: op.activityType.split(' [')[0]
+    }))
+
+    const processedAccumulated = accumulated.map(acc => ({
+        ...acc,
+        activityType: acc.itemName ? 'PPE' : 'DUST_NET' // itemName exists only for PPE
+    }))
 
     return {
         success: true,
         data: {
-            operations,
+            operations: processedOperations,
             localSupport,
             vulnerables,
             location: location,
-            accumulated
+            accumulated: processedAccumulated
         }
     }
 
@@ -127,7 +146,13 @@ export async function getOperationHistory(locationId = null) {
     // Fetch distinct dates from all relevant tables
     const [opsDates, vulnDates, supportDates] = await Promise.all([
         prisma.operationLog.findMany({
-            where,
+            where: {
+                ...where,
+                // If PCU/HOSPITAL, only show their own
+                activityType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                    ? { contains: `[${user.orgName}]` } 
+                    : undefined
+            },
             select: { recordDate: true },
             distinct: ['recordDate']
         }),
@@ -178,7 +203,13 @@ export async function deleteOperationData(dateString, locationId) {
     try {
         await prisma.$transaction(async (tx) => {
             await tx.operationLog.deleteMany({
-                where: { locationId: id, recordDate: date }
+                where: { 
+                    locationId: id, 
+                    recordDate: date,
+                    activityType: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                        ? { contains: `[${user.orgName}]` } 
+                        : undefined
+                }
             })
             await tx.vulnerableData.deleteMany({
                 where: { locationId: id, recordDate: date }
@@ -211,7 +242,7 @@ export async function saveOperationData(prevState, formData) {
         return { success: false, message: 'Unauthorized: User role not found' }
     }
 
-    if (!user) return { success: false, message: 'User not found' }
+    const orgPrefix = ` [${user.orgName}]`
 
     let targetLocationId = user.locationId
     const submittedLocationId = formData.get('locationId')
@@ -357,7 +388,7 @@ export async function saveOperationData(prevState, formData) {
                 opsToInsert.push({
                     locationId: targetLocationId,
                     recordDate: date,
-                    activityType: 'DUST_NET',
+                    activityType: 'DUST_NET' + orgPrefix,
                     amount: netsGiven,
                     targetGroup: 'PATIENTS'
                 })
@@ -369,7 +400,7 @@ export async function saveOperationData(prevState, formData) {
                     opsToInsert.push({
                         locationId: targetLocationId,
                         recordDate: date,
-                        activityType: 'PPE',
+                        activityType: 'PPE' + orgPrefix,
                         targetGroup: 'GENERAL_PUBLIC',
                         itemName: item,
                         amount: count
@@ -383,7 +414,7 @@ export async function saveOperationData(prevState, formData) {
                     opsToInsert.push({
                         locationId: targetLocationId,
                         recordDate: date,
-                        activityType: 'PPE',
+                        activityType: 'PPE' + orgPrefix,
                         targetGroup: 'SMALL_CHILDREN',
                         itemName: item,
                         amount: count
@@ -397,7 +428,7 @@ export async function saveOperationData(prevState, formData) {
                     opsToInsert.push({
                         locationId: targetLocationId,
                         recordDate: date,
-                        activityType: 'PPE',
+                        activityType: 'PPE' + orgPrefix,
                         targetGroup: 'PREGNANT_WOMEN',
                         itemName: item,
                         amount: count
@@ -411,7 +442,7 @@ export async function saveOperationData(prevState, formData) {
                     opsToInsert.push({
                         locationId: targetLocationId,
                         recordDate: date,
-                        activityType: 'PPE',
+                        activityType: 'PPE' + orgPrefix,
                         targetGroup: 'ELDERLY',
                         itemName: item,
                         amount: count
@@ -425,7 +456,7 @@ export async function saveOperationData(prevState, formData) {
                     opsToInsert.push({
                         locationId: targetLocationId,
                         recordDate: date,
-                        activityType: 'PPE',
+                        activityType: 'PPE' + orgPrefix,
                         targetGroup: 'BEDRIDDEN',
                         itemName: item,
                         amount: count
@@ -439,7 +470,7 @@ export async function saveOperationData(prevState, formData) {
                     opsToInsert.push({
                         locationId: targetLocationId,
                         recordDate: date,
-                        activityType: 'PPE',
+                        activityType: 'PPE' + orgPrefix,
                         targetGroup: 'HEART_DISEASE',
                         itemName: item,
                         amount: count
@@ -453,7 +484,7 @@ export async function saveOperationData(prevState, formData) {
                     opsToInsert.push({
                         locationId: targetLocationId,
                         recordDate: date,
-                        activityType: 'PPE',
+                        activityType: 'PPE' + orgPrefix,
                         targetGroup: 'RESPIRATORY_DISEASE',
                         itemName: item,
                         amount: count
@@ -502,7 +533,12 @@ export async function getOperationsExportData() {
     // Fetch operations, vulnerables, admin support
     const [operations, localSupport, vulnerables] = await Promise.all([
         prisma.operationLog.findMany({
-            where: whereClause,
+            where: {
+                ...whereClause,
+                activityType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                    ? { contains: `[${user.orgName}]` } 
+                    : undefined
+            },
             include: { location: true },
             orderBy: { recordDate: 'desc' },
         }),
@@ -525,17 +561,12 @@ export async function getOperationsExportData() {
         ...vulnerables.map(v => v.locationId)
     ].filter(Boolean))]
 
-    let orgNameMap = {}
-    if (locationIds.length > 0) {
-        const users = await prisma.user.findMany({
-            where: { locationId: { in: locationIds } },
-            select: { locationId: true, orgName: true }
-        })
+    const processedOperations = operations.map(op => {
+        const parts = op.activityType.split(' [')
+        const activityType = parts[0]
+        const orgName = parts[1] ? parts[1].replace(']', '') : (op.location?.districtName || '-')
+        return { ...op, activityType, orgName }
+    })
 
-        users.forEach(u => {
-            if (!orgNameMap[u.locationId]) orgNameMap[u.locationId] = u.orgName
-        })
-    }
-
-    return { operations, localSupport, vulnerables, orgNameMap }
+    return { operations: processedOperations, localSupport, vulnerables, orgNameMap }
 }

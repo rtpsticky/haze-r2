@@ -71,17 +71,30 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
                 return { success: false, error: 'Unauthorized location access' }
             }
             incidents = await prisma.staffIncident.findMany({
-                where: { locationId: parseInt(locationIdToUse), recordDate: date },
+                where: { 
+                    locationId: parseInt(locationIdToUse), 
+                    recordDate: date,
+                    // Filter by staffName containing our org name if PCU/HOSPITAL
+                    staffName: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                        ? { contains: `[${user.orgName}]` } 
+                        : undefined
+                },
                 orderBy: { id: 'desc' }
             })
             location = await prisma.location.findUnique({ where: { id: parseInt(locationIdToUse) } })
         }
 
+        // Post-process to strip [orgName]
+        const processedIncidents = incidents.map(inc => ({
+            ...inc,
+            staffName: inc.staffName.split(' [')[0]
+        }))
+
         return {
             success: true,
             data: {
                 location,
-                incidents
+                incidents: processedIncidents
             }
         }
     } catch (error) {
@@ -109,7 +122,7 @@ export async function saveIncident(prevState, formData) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        select: { locationId: true, role: true, orgName: true }
     })
 
     if (!['HOSPITAL', 'PCU', 'RPS', 'ADMIN'].includes(user.role)) {
@@ -123,7 +136,7 @@ export async function saveIncident(prevState, formData) {
     try {
         await prisma.staffIncident.create({
             data: {
-                staffName,
+                staffName: `${staffName} [${user.orgName}]`,
                 status,
                 incidentDetails,
                 recordDate: new Date(recordDate),
@@ -155,7 +168,7 @@ export async function updateIncident(prevState, formData) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        select: { locationId: true, role: true, orgName: true }
     })
 
     if (!['HOSPITAL', 'PCU', 'RPS', 'ADMIN'].includes(user.role)) {
@@ -174,7 +187,7 @@ export async function updateIncident(prevState, formData) {
         await prisma.staffIncident.update({
             where: { id },
             data: {
-                staffName,
+                staffName: `${staffName} [${user.orgName}]`,
                 status,
                 incidentDetails
             }
@@ -232,7 +245,7 @@ export async function deleteIncident(id) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        select: { locationId: true, role: true, orgName: true }
     })
 
     if (!['HOSPITAL', 'PCU', 'RPS', 'ADMIN'].includes(user.role)) {
@@ -243,7 +256,7 @@ export async function deleteIncident(id) {
     const existing = await prisma.staffIncident.findUnique({ where: { id } })
     if (!existing) return { success: false, message: 'Incident not found' }
 
-    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && existing.locationId !== user.locationId) {
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && (existing.locationId !== user.locationId || !existing.staffName.includes(`[${user.orgName}]`))) {
         return { success: false, message: 'Unauthorized delete' }
     }
 
@@ -266,7 +279,7 @@ export async function getIncidentsExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true }
+        select: { role: true, locationId: true, orgName: true }
     })
     if (!user) return null
 
@@ -282,7 +295,10 @@ export async function getIncidentsExportData() {
         })
         whereClause = { location: { provinceName: userWithLocation.location.provinceName } }
     } else if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
-        whereClause = { locationId: user.locationId }
+        whereClause = { 
+            locationId: user.locationId,
+            staffName: { contains: `[${user.orgName}]` }
+        }
     }
 
     const records = await prisma.staffIncident.findMany({
@@ -291,27 +307,15 @@ export async function getIncidentsExportData() {
         orderBy: { recordDate: 'desc' }
     })
 
-    const locationIds = [...new Set(records.map(r => r.locationId).filter(Boolean))]
+    return records.map(r => {
+        const parts = r.staffName.split(' [')
+        const staffName = parts[0]
+        const orgName = parts[1] ? parts[1].replace(']', '') : '-'
 
-    let users = []
-    if (locationIds.length > 0) {
-        users = await prisma.user.findMany({
-            where: {
-                locationId: { in: locationIds }
-            },
-            select: { locationId: true, orgName: true, role: true }
-        })
-    }
-
-    const locToOrgMap = {}
-    users.forEach(u => {
-        if (!locToOrgMap[u.locationId]) {
-            locToOrgMap[u.locationId] = u.orgName
+        return {
+            ...r,
+            staffName: staffName,
+            orgName: orgName
         }
     })
-
-    return records.map(r => ({
-        ...r,
-        orgName: locToOrgMap[r.locationId] || '-'
-    }))
 }

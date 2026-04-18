@@ -74,12 +74,12 @@ model MeasureLog {
 }
 
 model PheocReport {
-  id            Int      @id @default(autoincrement())
-  reportDate    DateTime // วันที่รายงาน [cite: 38]
-  status          String // ยังไม่เปิด, เฝ้าระวังปกติ, เฝ้าระวังใกล้ชิด, เปิด PHEOC, ปิดศูนย์ [cite: 39-43, 46]
-  responseLevel   String? // ระดับตอบโต้ 1-2 [cite: 44, 45]
-  pdfUrl          String? // ลิงก์แนบไฟล์เอกสาร PDF [cite: 47]
-  recordedByRole  String? // บทบาทของผู้รายงาน (SSJ, SSO, etc.)
+  id             Int      @id @default(autoincrement())
+  reportDate     DateTime // วันที่รายงาน [cite: 38]
+  status         String // ยังไม่เปิด, เฝ้าระวังปกติ, เฝ้าระวังใกล้ชิด, เปิด PHEOC, ปิดศูนย์ [cite: 39-43, 46]
+  responseLevel  String? // ระดับตอบโต้ 1-2 [cite: 44, 45]
+  pdfUrl         String? // ลิงก์แนบไฟล์เอกสาร PDF [cite: 47]
+  recordedByRole String? // บทบาทของผู้รายงาน (SSJ, SSO, etc.)
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])
@@ -109,6 +109,7 @@ model InventoryLog {
   itemName   String // Surgical Mask, N95, คาร์บอน, ผ้า, มุ้งสู้ฝุ่น [cite: 57]
   stockCount Int      @default(0) // จำนวนคงคลัง [cite: 57]
   recordDate DateTime // วันที่บันทึกข้อมูล [cite: 56]
+  recordedBy String?  // ชื่อหน่วยงานที่บันทึก
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])
@@ -157,7 +158,9 @@ model StaffIncident {
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])
-}target_group
+}
+
+target_group
 
 model ActiveCareLog {
   id         Int      @id @default(autoincrement())

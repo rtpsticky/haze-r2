@@ -40,7 +40,11 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
             prisma.activeCareLog.findMany({
                 where: {
                     locationId: locationId,
-                    recordDate: date
+                    recordDate: date,
+                    // Filter by activity containing our org name if PCU/HOSPITAL
+                    activity: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                        ? { contains: `[${user.orgName}]` } 
+                        : undefined
                 }
             }),
             prisma.localAdminSupport.findFirst({
@@ -54,10 +58,16 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
             })
         ])
 
+        // Strip [orgName] from results
+        const processedActiveCares = activeCares.map(care => ({
+            ...care,
+            activity: care.activity.split(' [')[0]
+        }))
+
         return {
             success: true,
             data: {
-                activeCares,
+                activeCares: processedActiveCares,
                 adminSupport,
                 location
             }
@@ -112,7 +122,13 @@ export async function getActiveCareHistory(locationId = null) {
     // Fetch distinct dates
     const [activeDates, supportDates] = await Promise.all([
         prisma.activeCareLog.findMany({
-            where,
+            where: {
+                ...where,
+                // If PCU/HOSPITAL, only show their own
+                activity: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                    ? { contains: `[${user.orgName}]` } 
+                    : undefined
+            },
             select: { recordDate: true },
             distinct: ['recordDate']
         }),
@@ -156,7 +172,13 @@ export async function deleteActiveCareData(dateString, locationId) {
     try {
         await prisma.$transaction(async (tx) => {
             await tx.activeCareLog.deleteMany({
-                where: { locationId: id, recordDate: date }
+                where: { 
+                    locationId: id, 
+                    recordDate: date,
+                    activity: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                        ? { contains: `[${user.orgName}]` } 
+                        : undefined
+                }
             })
             await tx.localAdminSupport.deleteMany({
                 where: { locationId: id, recordDate: date }
@@ -174,6 +196,11 @@ export async function deleteActiveCareData(dateString, locationId) {
 export async function saveActiveCareData(prevState, formData) {
     const session = await getSession()
     if (!session) return { success: false, message: 'Unauthorized' }
+
+    const user = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { id: true, locationId: true, role: true, orgName: true }
+    })
 
     const locationId = parseInt(formData.get('locationId'))
     if (!locationId) return { success: false, message: 'Location ID missing' }
@@ -200,11 +227,12 @@ export async function saveActiveCareData(prevState, formData) {
         await prisma.$transaction(async (tx) => {
             // 1. Update ActiveCareLog
             // Delete existing logic for this date first (simplest way to handle updates)
+            const orgPrefix = ` [${user.orgName}]`
             await tx.activeCareLog.deleteMany({
                 where: {
                     locationId: locationId,
                     recordDate: date,
-                    activity: { in: activities }
+                    activity: { contains: orgPrefix }
                 }
             })
 
@@ -218,7 +246,7 @@ export async function saveActiveCareData(prevState, formData) {
                     careLogsToInsert.push({
                         locationId: locationId,
                         recordDate: date,
-                        activity: act,
+                        activity: act + orgPrefix,
                         households,
                         people,
                         riskGroups
@@ -293,7 +321,12 @@ export async function getActiveCareExportData() {
 
     const [activeCares, adminSupport] = await Promise.all([
         prisma.activeCareLog.findMany({
-            where: whereClause,
+            where: {
+                ...whereClause,
+                activity: (user.role === 'PCU' || user.role === 'HOSPITAL') 
+                    ? { contains: `[${user.orgName}]` } 
+                    : undefined
+            },
             include: { location: true },
             orderBy: { recordDate: 'desc' }
         }),
@@ -308,17 +341,12 @@ export async function getActiveCareExportData() {
         ...adminSupport.map(a => a.locationId)
     ].filter(Boolean))]
 
-    let orgNameMap = {}
-    if (locationIds.length > 0) {
-        const users = await prisma.user.findMany({
-            where: { locationId: { in: locationIds } },
-            select: { locationId: true, orgName: true }
-        })
+    const processedActiveCares = activeCares.map(care => {
+        const parts = care.activity.split(' [')
+        const activity = parts[0]
+        const orgName = parts[1] ? parts[1].replace(']', '') : (care.location?.districtName || '-')
+        return { ...care, activity, orgName }
+    })
 
-        users.forEach(u => {
-            if (!orgNameMap[u.locationId]) orgNameMap[u.locationId] = u.orgName
-        })
-    }
-
-    return { activeCares, adminSupport, orgNameMap }
+    return { activeCares: processedActiveCares, adminSupport, orgNameMap }
 }
