@@ -341,10 +341,20 @@ export async function getActiveCareExportData() {
         ...adminSupport.map(a => a.locationId)
     ].filter(Boolean))]
 
+    const usersForMap = await prisma.user.findMany({
+        where: { locationId: { in: locationIds } },
+        select: { locationId: true, orgName: true }
+    })
+
+    const orgNameMap = {}
+    usersForMap.forEach(u => {
+        if (!orgNameMap[u.locationId]) orgNameMap[u.locationId] = u.orgName
+    })
+
     const processedActiveCares = activeCares.map(care => {
         const parts = care.activity.split(' [')
         const activity = parts[0]
-        const orgName = parts[1] ? parts[1].replace(']', '') : (care.location?.districtName || '-')
+        const orgName = parts[1] ? parts[1].replace(']', '') : (orgNameMap[care.locationId] || care.location?.districtName || '-')
         return { ...care, activity, orgName }
     })
 

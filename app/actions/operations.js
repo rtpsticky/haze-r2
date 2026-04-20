@@ -561,10 +561,20 @@ export async function getOperationsExportData() {
         ...vulnerables.map(v => v.locationId)
     ].filter(Boolean))]
 
+    const usersForMap = await prisma.user.findMany({
+        where: { locationId: { in: locationIds } },
+        select: { locationId: true, orgName: true }
+    })
+
+    const orgNameMap = {}
+    usersForMap.forEach(u => {
+        if (!orgNameMap[u.locationId]) orgNameMap[u.locationId] = u.orgName
+    })
+
     const processedOperations = operations.map(op => {
         const parts = op.activityType.split(' [')
         const activityType = parts[0]
-        const orgName = parts[1] ? parts[1].replace(']', '') : (op.location?.districtName || '-')
+        const orgName = parts[1] ? parts[1].replace(']', '') : (orgNameMap[op.locationId] || op.location?.districtName || '-')
         return { ...op, activityType, orgName }
     })
 
