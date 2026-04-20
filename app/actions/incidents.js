@@ -10,7 +10,7 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true, location: true }
+        select: { locationId: true, role: true, orgName: true, location: true }
     })
 
     const date = new Date(dateString)
@@ -20,20 +20,15 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
         let location = null
 
         if (user?.role === 'SSJ') {
-            if (requestedLocationId) {
-                const requestedLoc = await prisma.location.findUnique({ where: { id: parseInt(requestedLocationId) } })
+            const requestedLocId = requestedLocationId ? parseInt(requestedLocationId) : null
+            if (requestedLocId) {
+                const requestedLoc = await prisma.location.findUnique({ where: { id: requestedLocId } })
                 if (requestedLoc && requestedLoc.provinceName === user.location.provinceName) {
                     incidents = await prisma.staffIncident.findMany({
-                        where: { locationId: parseInt(requestedLocationId), recordDate: date },
+                        where: { locationId: requestedLocId, recordDate: date },
                         orderBy: { id: 'desc' }
                     })
                     location = requestedLoc
-                } else {
-                    incidents = await prisma.staffIncident.findMany({
-                        where: { location: { provinceName: user.location.provinceName }, recordDate: date },
-                        orderBy: { id: 'desc' }
-                    })
-                    location = user.location
                 }
             } else {
                 incidents = await prisma.staffIncident.findMany({
@@ -43,20 +38,15 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
                 location = user.location
             }
         } else if (user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') {
-            if (requestedLocationId) {
-                const requestedLoc = await prisma.location.findUnique({ where: { id: parseInt(requestedLocationId) } })
+            const requestedLocId = requestedLocationId ? parseInt(requestedLocationId) : null
+            if (requestedLocId) {
+                const requestedLoc = await prisma.location.findUnique({ where: { id: requestedLocId } })
                 if (requestedLoc) {
                     incidents = await prisma.staffIncident.findMany({
-                        where: { locationId: parseInt(requestedLocationId), recordDate: date },
+                        where: { locationId: requestedLocId, recordDate: date },
                         orderBy: { id: 'desc' }
                     })
                     location = requestedLoc
-                } else {
-                    incidents = await prisma.staffIncident.findMany({
-                        where: { recordDate: date },
-                        orderBy: { id: 'desc' }
-                    })
-                    location = user.location
                 }
             } else {
                 incidents = await prisma.staffIncident.findMany({
@@ -66,25 +56,23 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
                 location = user.location
             }
         } else {
-            const locationIdToUse = requestedLocationId || user.locationId
-            if (parseInt(locationIdToUse) !== user.locationId) {
+            const locationIdToUse = requestedLocationId ? parseInt(requestedLocationId) : user.locationId
+            if (locationIdToUse !== user.locationId) {
                 return { success: false, error: 'Unauthorized location access' }
             }
             incidents = await prisma.staffIncident.findMany({
                 where: { 
-                    locationId: parseInt(locationIdToUse), 
+                    locationId: locationIdToUse, 
                     recordDate: date,
-                    // Filter by staffName containing our org name if PCU/HOSPITAL
                     staffName: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                         ? { contains: `[${user.orgName}]` } 
                         : undefined
                 },
                 orderBy: { id: 'desc' }
             })
-            location = await prisma.location.findUnique({ where: { id: parseInt(locationIdToUse) } })
+            location = await prisma.location.findUnique({ where: { id: locationIdToUse } })
         }
 
-        // Post-process to strip [orgName]
         const processedIncidents = incidents.map(inc => ({
             ...inc,
             staffName: inc.staffName.split(' [')[0]
@@ -92,10 +80,7 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
 
         return {
             success: true,
-            data: {
-                location,
-                incidents: processedIncidents
-            }
+            data: { location, incidents: processedIncidents }
         }
     } catch (error) {
         console.error('Error fetching incident data:', error)
@@ -105,9 +90,7 @@ export async function getIncidentData(dateString, requestedLocationId = null) {
 
 export async function saveIncident(prevState, formData) {
     const session = await getSession()
-    if (!session) {
-        return { success: false, message: 'Unauthorized' }
-    }
+    if (!session) return { success: false, message: 'Unauthorized' }
 
     const staffName = formData.get('staffName')
     const status = formData.get('status')
@@ -115,7 +98,6 @@ export async function saveIncident(prevState, formData) {
     const recordDate = formData.get('recordDate')
     const locationId = parseInt(formData.get('locationId'))
 
-    // Validate required fields
     if (!staffName || !status || !incidentDetails || !recordDate || !locationId) {
         return { success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' }
     }
@@ -175,7 +157,6 @@ export async function updateIncident(prevState, formData) {
         return { success: false, message: 'สิทธิ์การแก้ไขข้อมูลสำหรับ โรงพยาบาล และ รพ.สต. เท่านั้น' }
     }
 
-    // Verify existing incident
     const existing = await prisma.staffIncident.findUnique({ where: { id } })
     if (!existing) return { success: false, message: 'Incident not found' }
 
@@ -252,7 +233,6 @@ export async function deleteIncident(id) {
         return { success: false, message: 'สิทธิ์การลบข้อมูลสำหรับ โรงพยาบาล และ รพ.สต. เท่านั้น' }
     }
 
-    // Verify existing incident
     const existing = await prisma.staffIncident.findUnique({ where: { id } })
     if (!existing) return { success: false, message: 'Incident not found' }
 
@@ -261,10 +241,7 @@ export async function deleteIncident(id) {
     }
 
     try {
-        await prisma.staffIncident.delete({
-            where: { id }
-        })
-
+        await prisma.staffIncident.delete({ where: { id } })
         revalidatePath('/incidents')
         return { success: true, message: 'ลบข้อมูลสำเร็จ' }
     } catch (error) {
@@ -312,10 +289,6 @@ export async function getIncidentsExportData() {
         const staffName = parts[0]
         const orgName = parts[1] ? parts[1].replace(']', '') : '-'
 
-        return {
-            ...r,
-            staffName: staffName,
-            orgName: orgName
-        }
+        return { ...r, staffName, orgName }
     })
 }

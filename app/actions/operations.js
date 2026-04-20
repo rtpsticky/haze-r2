@@ -99,7 +99,6 @@ export async function getOperationData(dateString, requestedLocationId) {
             accumulated: processedAccumulated
         }
     }
-
 }
 
 export async function getOperationHistory(locationId = null) {
@@ -108,7 +107,7 @@ export async function getOperationHistory(locationId = null) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true, location: { select: { provinceName: true } } }
+        select: { locationId: true, role: true, orgName: true, location: { select: { provinceName: true } } }
     })
     if (!user) return { success: false, error: 'User not found' }
 
@@ -188,7 +187,7 @@ export async function deleteOperationData(dateString, locationId) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true }
+        select: { locationId: true, role: true, orgName: true }
     })
     if (!user) return { success: false, message: 'User not found' }
 
@@ -250,24 +249,16 @@ export async function saveOperationData(prevState, formData) {
         targetLocationId = parseInt(submittedLocationId)
     }
 
-    if (!user) return { success: false, message: 'User not found' }
-
     const dateString = formData.get('date')
     if (!dateString) return { success: false, message: 'กรุณาระบุวันที่' }
 
     const date = new Date(dateString)
 
     // Data Extraction
-    // 1. Bedridden Patients (VulnerableData)
     const bedriddenCount = parseInt(formData.get('bedriddenCount') || '0')
-
-    // 2. Nets Given (OperationLog)
     const netsGiven = parseInt(formData.get('netsGiven') || '0')
-
-    // 3. Nets from LAO (LocalAdminSupport)
     const netsLao = parseInt(formData.get('netsLao') || '0')
 
-    // 4. PPE General
     const ppeGeneral = {
         'Surgical Mask': parseInt(formData.get('ppeGeneral_Surgical Mask') || '0'),
         'N95': parseInt(formData.get('ppeGeneral_N95') || '0'),
@@ -275,7 +266,6 @@ export async function saveOperationData(prevState, formData) {
         'Cloth Mask': parseInt(formData.get('ppeGeneral_Cloth Mask') || '0'),
     }
 
-    // 5. PPE Children
     const ppeChildren = {
         'Surgical Mask': parseInt(formData.get('ppeChildren_Surgical Mask') || '0'),
         'N95': parseInt(formData.get('ppeChildren_N95') || '0'),
@@ -283,7 +273,6 @@ export async function saveOperationData(prevState, formData) {
         'Cloth Mask': parseInt(formData.get('ppeChildren_Cloth Mask') || '0'),
     }
 
-    // 6. PPE Pregnant
     const ppePregnant = {
         'Surgical Mask': parseInt(formData.get('ppePregnant_Surgical Mask') || '0'),
         'N95': parseInt(formData.get('ppePregnant_N95') || '0'),
@@ -291,7 +280,6 @@ export async function saveOperationData(prevState, formData) {
         'Cloth Mask': parseInt(formData.get('ppePregnant_Cloth Mask') || '0'),
     }
 
-    // 7. PPE Elderly
     const ppeElderly = {
         'Surgical Mask': parseInt(formData.get('ppeElderly_Surgical Mask') || '0'),
         'N95': parseInt(formData.get('ppeElderly_N95') || '0'),
@@ -299,7 +287,6 @@ export async function saveOperationData(prevState, formData) {
         'Cloth Mask': parseInt(formData.get('ppeElderly_Cloth Mask') || '0'),
     }
 
-    // 8. PPE Bedridden
     const ppeBedridden = {
         'Surgical Mask': parseInt(formData.get('ppeBedridden_Surgical Mask') || '0'),
         'N95': parseInt(formData.get('ppeBedridden_N95') || '0'),
@@ -307,7 +294,6 @@ export async function saveOperationData(prevState, formData) {
         'Cloth Mask': parseInt(formData.get('ppeBedridden_Cloth Mask') || '0'),
     }
 
-    // 9. PPE Heart
     const ppeHeart = {
         'Surgical Mask': parseInt(formData.get('ppeHeart_Surgical Mask') || '0'),
         'N95': parseInt(formData.get('ppeHeart_N95') || '0'),
@@ -315,7 +301,6 @@ export async function saveOperationData(prevState, formData) {
         'Cloth Mask': parseInt(formData.get('ppeHeart_Cloth Mask') || '0'),
     }
 
-    // 10. PPE Respiratory
     const ppeRespiratory = {
         'Surgical Mask': parseInt(formData.get('ppeRespiratory_Surgical Mask') || '0'),
         'N95': parseInt(formData.get('ppeRespiratory_N95') || '0'),
@@ -325,30 +310,17 @@ export async function saveOperationData(prevState, formData) {
 
     try {
         await prisma.$transaction(async (tx) => {
-            // 1. Update VulnerableData (Bedridden)
-            // Clean up existing focused record for Bedridden on that day to avoid dupes if logic changes
-            // But since table is generic, assuming only one 'BEDRIDDEN' per day per location
+            // 1. Bedridden
             await tx.vulnerableData.deleteMany({
-                where: {
-                    locationId: targetLocationId,
-                    recordDate: date,
-                    groupType: 'BEDRIDDEN_OP' // Special tag or just 'ติดเตียง'
-                }
+                where: { locationId: targetLocationId, recordDate: date, groupType: 'BEDRIDDEN_OP' }
             })
             if (bedriddenCount > 0) {
                 await tx.vulnerableData.create({
-                    data: {
-                        locationId: targetLocationId,
-                        recordDate: date,
-                        groupType: 'BEDRIDDEN_OP',
-                        targetCount: bedriddenCount
-                    }
+                    data: { locationId: targetLocationId, recordDate: date, groupType: 'BEDRIDDEN_OP', targetCount: bedriddenCount }
                 })
             }
 
-            // 2. Update LocalAdminSupport (Nets from LAO)
-            // Upsert doesn't work well without unique constraint on (location, date). 
-            // So we check first or delete-create.
+            // 2. Local Admin Support
             const existingSupport = await tx.localAdminSupport.findFirst({
                 where: { locationId: targetLocationId, recordDate: date }
             })
@@ -357,151 +329,47 @@ export async function saveOperationData(prevState, formData) {
                     where: { id: existingSupport.id },
                     data: { dustNetSupport: netsLao }
                 })
-            } else if (netsLao > 0) { // Only create if data exists? Or create 0?
+            } else if (netsLao > 0) {
                 await tx.localAdminSupport.create({
-                    data: {
-                        locationId: targetLocationId,
-                        recordDate: date,
-                        orgCount: 0, // Default or need input? Form doesn't have it.
-                        maskSupport: 0,
-                        dustNetSupport: netsLao,
-                        cleanRoomSupport: 0
-                    }
+                    data: { locationId: targetLocationId, recordDate: date, orgCount: 0, maskSupport: 0, dustNetSupport: netsLao, cleanRoomSupport: 0 }
                 })
             }
 
-            // 3. Operation Logs (Nets Given + PPE)
-            // Delete existing for this date
+            // 3. Operation Logs
             await tx.operationLog.deleteMany({
-                where: {
-                    locationId: targetLocationId,
-                    recordDate: date,
-                    // activityType: { in: ['DUST_NET', 'PPE'] } // Optional safety
-                }
+                where: { locationId: targetLocationId, recordDate: date, activityType: { contains: orgPrefix } }
             })
 
-            // Operations - Data to insert
             const opsToInsert = []
-
-            // Nets Given
             if (netsGiven > 0) {
-                opsToInsert.push({
-                    locationId: targetLocationId,
-                    recordDate: date,
-                    activityType: 'DUST_NET' + orgPrefix,
-                    amount: netsGiven,
-                    targetGroup: 'PATIENTS'
+                opsToInsert.push({ locationId: targetLocationId, recordDate: date, activityType: 'DUST_NET' + orgPrefix, amount: netsGiven, targetGroup: 'PATIENTS' })
+            }
+
+            const ppeGroups = [
+                { data: ppeGeneral, group: 'GENERAL_PUBLIC' },
+                { data: ppeChildren, group: 'SMALL_CHILDREN' },
+                { data: ppePregnant, group: 'PREGNANT_WOMEN' },
+                { data: ppeElderly, group: 'ELDERLY' },
+                { data: ppeBedridden, group: 'BEDRIDDEN' },
+                { data: ppeHeart, group: 'HEART_DISEASE' },
+                { data: ppeRespiratory, group: 'RESPIRATORY_DISEASE' }
+            ]
+
+            ppeGroups.forEach(({ data, group }) => {
+                Object.entries(data).forEach(([item, count]) => {
+                    if (count > 0) {
+                        opsToInsert.push({ locationId: targetLocationId, recordDate: date, activityType: 'PPE' + orgPrefix, targetGroup: group, itemName: item, amount: count })
+                    }
                 })
-            }
-
-            // PPE General
-            for (const [item, count] of Object.entries(ppeGeneral)) {
-                if (count > 0) {
-                    opsToInsert.push({
-                        locationId: targetLocationId,
-                        recordDate: date,
-                        activityType: 'PPE' + orgPrefix,
-                        targetGroup: 'GENERAL_PUBLIC',
-                        itemName: item,
-                        amount: count
-                    })
-                }
-            }
-
-            // PPE Children
-            for (const [item, count] of Object.entries(ppeChildren)) {
-                if (count > 0) {
-                    opsToInsert.push({
-                        locationId: targetLocationId,
-                        recordDate: date,
-                        activityType: 'PPE' + orgPrefix,
-                        targetGroup: 'SMALL_CHILDREN',
-                        itemName: item,
-                        amount: count
-                    })
-                }
-            }
-
-            // PPE Pregnant
-            for (const [item, count] of Object.entries(ppePregnant)) {
-                if (count > 0) {
-                    opsToInsert.push({
-                        locationId: targetLocationId,
-                        recordDate: date,
-                        activityType: 'PPE' + orgPrefix,
-                        targetGroup: 'PREGNANT_WOMEN',
-                        itemName: item,
-                        amount: count
-                    })
-                }
-            }
-
-            // PPE Elderly
-            for (const [item, count] of Object.entries(ppeElderly)) {
-                if (count > 0) {
-                    opsToInsert.push({
-                        locationId: targetLocationId,
-                        recordDate: date,
-                        activityType: 'PPE' + orgPrefix,
-                        targetGroup: 'ELDERLY',
-                        itemName: item,
-                        amount: count
-                    })
-                }
-            }
-
-            // PPE Bedridden
-            for (const [item, count] of Object.entries(ppeBedridden)) {
-                if (count > 0) {
-                    opsToInsert.push({
-                        locationId: targetLocationId,
-                        recordDate: date,
-                        activityType: 'PPE' + orgPrefix,
-                        targetGroup: 'BEDRIDDEN',
-                        itemName: item,
-                        amount: count
-                    })
-                }
-            }
-
-            // PPE Heart
-            for (const [item, count] of Object.entries(ppeHeart)) {
-                if (count > 0) {
-                    opsToInsert.push({
-                        locationId: targetLocationId,
-                        recordDate: date,
-                        activityType: 'PPE' + orgPrefix,
-                        targetGroup: 'HEART_DISEASE',
-                        itemName: item,
-                        amount: count
-                    })
-                }
-            }
-
-            // PPE Respiratory
-            for (const [item, count] of Object.entries(ppeRespiratory)) {
-                if (count > 0) {
-                    opsToInsert.push({
-                        locationId: targetLocationId,
-                        recordDate: date,
-                        activityType: 'PPE' + orgPrefix,
-                        targetGroup: 'RESPIRATORY_DISEASE',
-                        itemName: item,
-                        amount: count
-                    })
-                }
-            }
+            })
 
             if (opsToInsert.length > 0) {
-                await tx.operationLog.createMany({
-                    data: opsToInsert
-                })
+                await tx.operationLog.createMany({ data: opsToInsert })
             }
         })
 
         revalidatePath('/operations')
         return { success: true, message: 'บันทึกข้อมูลสำเร็จ' }
-
     } catch (e) {
         console.error(e)
         return { success: false, message: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล' }
@@ -510,18 +378,13 @@ export async function saveOperationData(prevState, formData) {
 
 export async function getOperationsExportData() {
     const session = await getSession()
-    if (!session) {
-        return null
-    }
+    if (!session) return null
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true, location: { select: { provinceName: true } } }
+        select: { role: true, locationId: true, orgName: true, location: { select: { provinceName: true } } }
     })
-
-    if (!user) {
-        return null
-    }
+    if (!user) return null
 
     let whereClause = { locationId: user.locationId }
     if (user.role === 'ADMIN' || user.role === 'HEALTH_REGION') {
@@ -530,7 +393,6 @@ export async function getOperationsExportData() {
         whereClause = { location: { provinceName: user.location.provinceName } }
     }
 
-    // Fetch operations, vulnerables, admin support
     const [operations, localSupport, vulnerables] = await Promise.all([
         prisma.operationLog.findMany({
             where: {
@@ -547,10 +409,7 @@ export async function getOperationsExportData() {
             include: { location: true },
         }),
         prisma.vulnerableData.findMany({
-            where: {
-                ...whereClause,
-                groupType: 'BEDRIDDEN_OP'
-            },
+            where: { ...whereClause, groupType: 'BEDRIDDEN_OP' },
             include: { location: true },
         }),
     ])
