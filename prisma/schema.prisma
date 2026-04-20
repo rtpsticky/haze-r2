@@ -109,7 +109,7 @@ model InventoryLog {
   itemName   String // Surgical Mask, N95, คาร์บอน, ผ้า, มุ้งสู้ฝุ่น [cite: 57]
   stockCount Int      @default(0) // จำนวนคงคลัง [cite: 57]
   recordDate DateTime // วันที่บันทึกข้อมูล [cite: 56]
-  recordedBy String?  // ชื่อหน่วยงานที่บันทึก
+  recordedBy String? // ชื่อหน่วยงานที่บันทึก
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])
@@ -159,8 +159,6 @@ model StaffIncident {
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])
 }
-
-target_group
 
 model ActiveCareLog {
   id         Int      @id @default(autoincrement())
