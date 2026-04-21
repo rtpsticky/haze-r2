@@ -138,6 +138,7 @@ model CleanRoomReport {
   standard3Count   Int      @default(0) // มาตรฐานระดับ 3
   serviceUserCount Int      @default(0) // จำนวนผู้รับบริการ (ราย) [cite: 61]
   recordDate       DateTime // วันที่บันทึกข้อมูล [cite: 60]
+  recordedBy       String? // ชื่อหน่วยงานที่บันทึก
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])
@@ -154,6 +155,7 @@ model OperationLog {
   itemName     String? // รายการหน้ากากแต่ละชนิด 
   amount       Int      @default(0) // จำนวนสนับสนุน 
   recordDate   DateTime // วันที่บันทึกข้อมูล [cite: 65]
+  recordedBy   String? // ชื่อหน่วยงานที่บันทึก
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])
@@ -178,6 +180,7 @@ model ActiveCareLog {
   people     Int      @default(0) // จำนวนประชาชนที่ดูแล [cite: 92]
   riskGroups Int      @default(0) // จำนวนกลุ่มเสี่ยงที่ดูแล [cite: 92]
   recordDate DateTime // วันที่บันทึก [cite: 91]
+  recordedBy String? // ชื่อหน่วยงานที่บันทึก
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])

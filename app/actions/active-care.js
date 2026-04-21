@@ -33,8 +33,9 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
                 where: {
                     locationId: locationId,
                     recordDate: date,
-                    activity: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                        ? { contains: `[${user.orgName}]` } 
+                    // Filter by organization for isolation
+                    recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                        ? user.orgName 
                         : undefined
                 }
             }),
@@ -51,7 +52,7 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
 
         const processedActiveCares = activeCares.map(care => ({
             ...care,
-            activity: care.activity.split(' [')[0]
+            activity: care.activity
         }))
 
         return {
@@ -109,8 +110,9 @@ export async function getActiveCareHistory(locationId = null) {
         prisma.activeCareLog.findMany({
             where: {
                 ...where,
-                activity: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                    ? { contains: `[${user.orgName}]` } 
+                // Filter by organization
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                    ? user.orgName 
                     : undefined
             },
             select: { recordDate: true },
@@ -155,8 +157,8 @@ export async function deleteActiveCareData(dateString, locationId) {
                 where: { 
                     locationId: id, 
                     recordDate: date,
-                    activity: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
-                        ? { contains: `[${user.orgName}]` } 
+                    recordedBy: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                        ? user.orgName 
                         : undefined
                 }
             })
@@ -197,9 +199,9 @@ export async function saveActiveCareData(prevState, formData) {
 
     try {
         await prisma.$transaction(async (tx) => {
-            const orgPrefix = ` [${user.orgName}]`
+            const recordedBy = user.orgName
             await tx.activeCareLog.deleteMany({
-                where: { locationId: locationId, recordDate: date, activity: { contains: orgPrefix } }
+                where: { locationId: locationId, recordDate: date, recordedBy: recordedBy }
             })
 
             const careLogsToInsert = []
@@ -212,10 +214,11 @@ export async function saveActiveCareData(prevState, formData) {
                     careLogsToInsert.push({
                         locationId: locationId,
                         recordDate: date,
-                        activity: act + orgPrefix,
+                        activity: act,
                         households,
                         people,
-                        riskGroups
+                        riskGroups,
+                        recordedBy: recordedBy
                     })
                 }
             }
@@ -269,8 +272,8 @@ export async function getActiveCareExportData() {
         prisma.activeCareLog.findMany({
             where: {
                 ...whereClause,
-                activity: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                    ? { contains: `[${user.orgName}]` } 
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                    ? user.orgName 
                     : undefined
             },
             include: { location: true },
@@ -298,10 +301,11 @@ export async function getActiveCareExportData() {
     })
 
     const processedActiveCares = activeCares.map(care => {
-        const parts = care.activity.split(' [')
-        const activity = parts[0]
-        const orgName = parts[1] ? parts[1].replace(']', '') : (orgNameMap[care.locationId] || care.location?.districtName || '-')
-        return { ...care, activity, orgName }
+        return { 
+            ...care, 
+            activity: care.activity, 
+            orgName: care.recordedBy || orgNameMap[care.locationId] || care.location?.districtName || '-' 
+        }
     })
 
     return { activeCares: processedActiveCares, adminSupport, orgNameMap }

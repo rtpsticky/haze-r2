@@ -40,9 +40,9 @@ export async function getOperationData(dateString, requestedLocationId) {
             where: {
                 locationId: locationId,
                 recordDate: date,
-                // Filter by activityType containing our org name if PCU/HOSPITAL
-                activityType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                    ? { contains: `[${user.orgName}]` } 
+                // Filter by organization for isolation
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                    ? user.orgName 
                     : undefined
             }
         }),
@@ -71,17 +71,17 @@ export async function getOperationData(dateString, requestedLocationId) {
             recordDate: {
                 lte: date
             },
-            // Filter by activityType containing our org name if PCU/HOSPITAL
-            activityType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                ? { contains: `[${user.orgName}]` } 
+            // Filter by organization for isolation
+            recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                ? user.orgName 
                 : undefined
         }
     })
 
-    // Strip [orgName] for the form
+    // Use clean activityType
     const processedOperations = operations.map(op => ({
         ...op,
-        activityType: op.activityType.split(' [')[0]
+        activityType: op.activityType
     }))
 
     const processedAccumulated = accumulated.map(acc => ({
@@ -147,9 +147,9 @@ export async function getOperationHistory(locationId = null) {
         prisma.operationLog.findMany({
             where: {
                 ...where,
-                // If PCU/HOSPITAL, only show their own
-                activityType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                    ? { contains: `[${user.orgName}]` } 
+                // If special roles, only show their own
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                    ? user.orgName 
                     : undefined
             },
             select: { recordDate: true },
@@ -205,8 +205,8 @@ export async function deleteOperationData(dateString, locationId) {
                 where: { 
                     locationId: id, 
                     recordDate: date,
-                    activityType: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
-                        ? { contains: `[${user.orgName}]` } 
+                    recordedBy: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                        ? user.orgName 
                         : undefined
                 }
             })
@@ -241,7 +241,7 @@ export async function saveOperationData(prevState, formData) {
         return { success: false, message: 'Unauthorized: User role not found' }
     }
 
-    const orgPrefix = ` [${user.orgName}]`
+    const recordBy = user.orgName
 
     let targetLocationId = user.locationId
     const submittedLocationId = formData.get('locationId')
@@ -337,12 +337,12 @@ export async function saveOperationData(prevState, formData) {
 
             // 3. Operation Logs
             await tx.operationLog.deleteMany({
-                where: { locationId: targetLocationId, recordDate: date, activityType: { contains: orgPrefix } }
+                where: { locationId: targetLocationId, recordDate: date, recordedBy: recordBy }
             })
 
             const opsToInsert = []
             if (netsGiven > 0) {
-                opsToInsert.push({ locationId: targetLocationId, recordDate: date, activityType: 'DUST_NET' + orgPrefix, amount: netsGiven, targetGroup: 'PATIENTS' })
+                opsToInsert.push({ locationId: targetLocationId, recordDate: date, activityType: 'DUST_NET', amount: netsGiven, targetGroup: 'PATIENTS', recordedBy: recordBy })
             }
 
             const ppeGroups = [
@@ -358,7 +358,15 @@ export async function saveOperationData(prevState, formData) {
             ppeGroups.forEach(({ data, group }) => {
                 Object.entries(data).forEach(([item, count]) => {
                     if (count > 0) {
-                        opsToInsert.push({ locationId: targetLocationId, recordDate: date, activityType: 'PPE' + orgPrefix, targetGroup: group, itemName: item, amount: count })
+                        opsToInsert.push({ 
+                            locationId: targetLocationId, 
+                            recordDate: date, 
+                            activityType: 'PPE', 
+                            targetGroup: group, 
+                            itemName: item, 
+                            amount: count,
+                            recordedBy: recordBy
+                        })
                     }
                 })
             })
@@ -397,8 +405,8 @@ export async function getOperationsExportData() {
         prisma.operationLog.findMany({
             where: {
                 ...whereClause,
-                activityType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                    ? { contains: `[${user.orgName}]` } 
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                    ? user.orgName 
                     : undefined
             },
             include: { location: true },
@@ -431,10 +439,11 @@ export async function getOperationsExportData() {
     })
 
     const processedOperations = operations.map(op => {
-        const parts = op.activityType.split(' [')
-        const activityType = parts[0]
-        const orgName = parts[1] ? parts[1].replace(']', '') : (orgNameMap[op.locationId] || op.location?.districtName || '-')
-        return { ...op, activityType, orgName }
+        return { 
+            ...op, 
+            activityType: op.activityType, 
+            orgName: op.recordedBy || orgNameMap[op.locationId] || op.location?.districtName || '-' 
+        }
     })
 
     return { operations: processedOperations, localSupport, vulnerables, orgNameMap }

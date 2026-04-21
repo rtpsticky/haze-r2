@@ -28,18 +28,12 @@ export async function getCleanRoomData(dateStr) {
                 gte: startOfDay,
                 lte: endOfDay
             },
-            // Filter by place type containing our org name if PCU/HOSPITAL
-            placeType: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                ? { contains: `[${user.orgName}]` } 
+            // Filter by organization name
+            recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                ? user.orgName 
                 : undefined
         }
     })
-
-    // Strip [orgName] from results for UI matching
-    return data.map(record => ({
-        ...record,
-        placeType: record.placeType.split(' [')[0]
-    }))
 
     return data
 }
@@ -91,19 +85,17 @@ export async function saveCleanRoomData(prevState, formData) {
             const standard3Count = parseInt(formData.get(`${placeType}_standard3Count`)) || 0
             const serviceUserCount = parseInt(formData.get(`${placeType}_serviceUserCount`)) || 0
 
-            // Append orgName to placeType for isolation
-            const isolatedPlaceType = `${placeType} [${user.orgName}]`
-
             const existing = await prisma.cleanRoomReport.findFirst({
                 where: {
                     locationId: user.locationId,
-                    placeType: isolatedPlaceType,
+                    placeType: placeType,
+                    recordedBy: user.orgName,
                     recordDate: recordDate
                 }
             })
 
             const data = {
-                placeType: isolatedPlaceType,
+                placeType: placeType,
                 placeCount,
                 targetRoomCount,
                 passedStandard,
@@ -112,7 +104,8 @@ export async function saveCleanRoomData(prevState, formData) {
                 standard3Count,
                 serviceUserCount,
                 recordDate,
-                locationId: user.locationId
+                locationId: user.locationId,
+                recordedBy: user.orgName
             }
 
             if (existing) {
@@ -201,10 +194,10 @@ export async function getCleanRoomHistory() {
         where = {}
     } else if (user.role === 'SSJ') {
         where = { location: { provinceName: user.location.provinceName } }
-    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') {
         where = { 
             locationId: user.locationId,
-            placeType: { contains: `[${user.orgName}]` }
+            recordedBy: user.orgName
         }
     }
 
@@ -220,15 +213,10 @@ export async function getCleanRoomHistory() {
 
     // Post-process data to strip [orgName] and identify orgName from placeType
     const processedData = data.map(record => {
-        const parts = record.placeType.split(' [')
-        const placeType = parts[0]
-        const extractedOrg = parts[1] ? parts[1].replace(']', '') : (record.location?.districtName || '')
-        
         return {
             ...record,
-            originalPlaceType: record.placeType,
-            placeType: placeType,
-            orgNameFromType: extractedOrg
+            placeType: record.placeType,
+            orgNameFromType: record.recordedBy || record.location?.districtName || ''
         }
     })
 
@@ -291,8 +279,8 @@ export async function deleteCleanRoomReport(dateStr, targetLocationId) {
                 locationId: deleteLocationId,
                 recordDate: date,
                 // If not admin, delete only your org's items
-                placeType: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
-                    ? { contains: `[${user.orgName}]` } 
+                recordedBy: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                    ? user.orgName 
                     : undefined
             }
         })
@@ -325,10 +313,10 @@ export async function getCleanRoomExportData() {
         whereClause = {}
     } else if (user.role === 'SSJ') {
         whereClause = { location: { provinceName: user.location.provinceName } }
-    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') {
         whereClause = { 
             locationId: user.locationId,
-            placeType: { contains: `[${user.orgName}]` }
+            recordedBy: user.orgName
         }
     }
 
@@ -341,14 +329,10 @@ export async function getCleanRoomExportData() {
     })
 
     return records.map(r => {
-        const parts = r.placeType.split(' [')
-        const placeType = parts[0]
-        const extractedOrg = parts[1] ? parts[1].replace(']', '') : (r.location?.districtName || '-')
-
         return {
             ...r,
-            placeType: placeType,
-            orgName: extractedOrg
+            placeType: r.placeType,
+            orgName: r.recordedBy || r.location?.districtName || '-'
         }
     })
 }
