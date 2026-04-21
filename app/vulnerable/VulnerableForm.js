@@ -2,8 +2,9 @@
 
 import { useActionState, useState, useEffect } from 'react'
 import { saveVulnerableData, getVulnerableData } from '@/app/actions/vulnerable'
-import Link from 'next/link'
+import { getDistrictsByProvince } from '@/app/actions/locations'
 
+import Link from 'next/link'
 import VulnerableInputs, { groups } from './VulnerableInputs'
 import VulnerableHistory from './VulnerableHistory'
 import ExportVulnerableButton from './ExportVulnerableButton'
@@ -15,13 +16,34 @@ export default function VulnerablePage({ user }) {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0])
     const [counts, setCounts] = useState({})
     const [isLoadingData, setIsLoadingData] = useState(false)
+    const [districts, setDistricts] = useState([])
+    const [selectedLocationId, setSelectedLocationId] = useState(user?.locationId)
 
-    // Fetch data when date changes
+    const isSSJ = user?.role === 'SSJ' || user?.role === 'ADMIN'
+
+    // Load districts if SSJ
+    useEffect(() => {
+        if (isSSJ) {
+            async function loadDistricts() {
+                try {
+                    const res = await getDistrictsByProvince(user?.location?.provinceName)
+                    if (res.success) {
+                        setDistricts(res.data)
+                    }
+                } catch (e) {
+                    console.error(e)
+                }
+            }
+            loadDistricts()
+        }
+    }, [isSSJ, user?.location?.provinceName])
+
+    // Fetch data when date or location changes
     useEffect(() => {
         async function fetchData() {
             setIsLoadingData(true)
             try {
-                const data = await getVulnerableData(date)
+                const data = await getVulnerableData(date, selectedLocationId)
                 const newCounts = {}
                 // Map DB data back to form keys
                 data.forEach(record => {
@@ -33,12 +55,15 @@ export default function VulnerablePage({ user }) {
                 setCounts(newCounts)
             } catch (e) {
                 console.error(e)
+                setCounts({}) // Reset counts on error
             } finally {
                 setIsLoadingData(false)
             }
         }
-        fetchData()
-    }, [date])
+        if (selectedLocationId || !isSSJ) {
+            fetchData()
+        }
+    }, [date, selectedLocationId, isSSJ])
 
     const handleCountChange = (key, value) => {
         setCounts(prev => ({ ...prev, [key]: value }))
@@ -68,14 +93,13 @@ export default function VulnerablePage({ user }) {
         )
     }
 
-    const canEdit = ['SSO', 'ADMIN', 'HOSPITAL', 'RPS', 'PCU'].includes(user?.role)
-
-    // If fetch success/submit success handled above...
+    const canEdit = ['SSJ', 'SSO', 'ADMIN', 'HOSPITAL', 'RPS', 'PCU'].includes(user?.role)
 
     if (!canEdit) {
         return (
             <div className="min-h-screen bg-slate-50 py-8">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    {/* ... rest of non-edit view ... */}
                     <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
                             <Link href="/" className="p-2 rounded-lg bg-white shadow-sm text-slate-500 hover:text-emerald-600 hover:shadow transition-all">
@@ -94,7 +118,7 @@ export default function VulnerablePage({ user }) {
                     </div>
 
                     <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-800 mb-8">
-                        <p>สิทธิ์การบันทึกข้อมูลสำหรับเจ้าหน้าที่ สสอ., โรงพยาบาล และ รพ.สต. เท่านั้น</p>
+                        <p>สิทธิ์การบันทึกข้อมูลต้องได้รับอนุญาตจากระบบ</p>
                     </div>
                 </div>
             </div>
@@ -114,7 +138,7 @@ export default function VulnerablePage({ user }) {
                         <div>
                             <h1 className="text-2xl font-bold text-slate-800">กลุ่มเปราะบาง (Vulnerable Groups)</h1>
                             <p className="text-slate-500 text-sm">
-                                {user?.location?.provinceName} {user?.location?.districtName} {user?.location?.subDistrict}
+                                {user?.location?.provinceName} {isSSJ ? 'เลือกอำเภอเพื่อบันทึกกรณีพิเศษ' : user?.location?.districtName}
                             </p>
                         </div>
                     </div>
@@ -123,26 +147,55 @@ export default function VulnerablePage({ user }) {
 
                 <form action={formAction} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                     <div className="p-6 space-y-6">
-                        {/* Date Selection */}
-                        <div>
-                            <label htmlFor="recordDate" className="block text-sm font-medium text-slate-800 mb-2">
-                                วันที่บันทึกข้อมูล
-                            </label>
-                            <input
-                                type="date"
-                                name="recordDate"
-                                id="recordDate"
-                                required
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="block w-full max-w-sm rounded-lg border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
-                            />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Date Selection */}
+                            <div>
+                                <label htmlFor="recordDate" className="block text-sm font-medium text-slate-800 mb-2">
+                                    วันที่บันทึกข้อมูล
+                                </label>
+                                <input
+                                    type="date"
+                                    name="recordDate"
+                                    id="recordDate"
+                                    required
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                                />
+                            </div>
+
+                            {/* Location Selection for SSJ */}
+                            {isSSJ && (
+                                <div>
+                                    <label htmlFor="locationId" className="block text-sm font-medium text-slate-800 mb-2">
+                                        เลือกอำเภอ
+                                    </label>
+                                    <select
+                                        name="locationId"
+                                        id="locationId"
+                                        required
+                                        value={selectedLocationId}
+                                        onChange={(e) => setSelectedLocationId(e.target.value)}
+                                        className="block w-full rounded-lg border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm"
+                                    >
+                                        <option value="">เลือกอำเภอ</option>
+                                        {districts.map((loc) => (
+                                            <option key={loc.id} value={loc.id}>
+                                                {loc.districtName}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                         </div>
 
                         {/* Table */}
-                        {/* Grid Input Area */}
                         {isLoadingData ? (
                             <div className="p-12 text-center text-slate-500 text-lg">กำลังโหลดข้อมูล...</div>
+                        ) : !selectedLocationId && isSSJ ? (
+                            <div className="p-12 text-center text-slate-500 text-lg border-2 border-dashed border-slate-200 rounded-xl">
+                                กรุณาเลือกอำเภอเพื่อบันทึกข้อมูล
+                            </div>
                         ) : (
                             <VulnerableInputs counts={counts} onChange={handleCountChange} />
                         )}
@@ -155,10 +208,14 @@ export default function VulnerablePage({ user }) {
 
                         <button
                             type="submit"
-                            disabled={isPending || isLoadingData}
+                            disabled={isPending || isLoadingData || (isSSJ && !selectedLocationId)}
                             className="rounded-xl bg-emerald-600 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                            {isPending ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
+                            {isPending 
+                                ? 'กำลังบันทึก...' 
+                                : isSSJ 
+                                    ? 'บันทึกข้อมูลกรณีพิเศษ (By-Pass)' 
+                                    : 'บันทึกข้อมูล'}
                         </button>
                     </div>
                 </form>

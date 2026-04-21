@@ -72,7 +72,7 @@ export async function GET(request) {
     }
 
     // Fetch data concurrently for the specific date and locations
-    const [pheocReports, vulnerableData, cleanRoomReports, operationLogs, staffIncidents] = await Promise.all([
+    const [pheocReports, normalVulnerable, bypassVulnerable, cleanRoomReports, operationLogs, staffIncidents] = await Promise.all([
       prisma.pheocReport.findMany({
         where: {
           locationId: { in: locationIds },
@@ -84,6 +84,16 @@ export async function GET(request) {
         ]
       }),
       prisma.vulnerableData.findMany({
+        where: {
+          locationId: { in: locationIds },
+          recordDate: { lte: endOfDay }
+        },
+        orderBy: [
+          { recordDate: 'desc' },
+          { id: 'desc' }
+        ]
+      }),
+      prisma.vulnerableDataByPass.findMany({
         where: {
           locationId: { in: locationIds },
           recordDate: { lte: endOfDay }
@@ -120,6 +130,24 @@ export async function GET(request) {
         }
       })
     ]);
+
+    // Group ByPass data first for easy lookup during merge
+    const bypassMap = new Map();
+    bypassVulnerable.forEach(r => {
+      const key = `${r.locationId}-${r.groupType}`;
+      if (!bypassMap.has(key)) {
+        bypassMap.set(key, r);
+      }
+    });
+
+    // Merge normal and bypass
+    const finalVulnerableData = [...bypassVulnerable];
+    normalVulnerable.forEach(r => {
+      const key = `${r.locationId}-${r.groupType}`;
+      if (!bypassMap.has(key)) {
+        finalVulnerableData.push(r);
+      }
+    });
 
     // Grouping by province Name
     const aggregatedData = {};
@@ -167,7 +195,7 @@ export async function GET(request) {
 
     // Process Vulnerable Data (Latest Snapshot by Location + Group)
     const vulnerableSeen = new Set();
-    for (const data of vulnerableData) {
+    for (const data of finalVulnerableData) {
       const uniqueKey = `${data.locationId}-${data.groupType}`;
       if (vulnerableSeen.has(uniqueKey)) continue; // We only want the latest record
       vulnerableSeen.add(uniqueKey);

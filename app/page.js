@@ -85,7 +85,7 @@ export default async function Home() {
           </section>
 
           {/* Section 2: Vulnerable Groups */}
-          {(['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'PCU'].includes(user?.role)) && (
+          {(['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'PCU'].includes(user?.role)) && (
             <section>
               <h3 className="text-2xl font-semibold text-slate-700 mb-4 flex items-center gap-2">
                 <span className="h-6 w-1 bg-amber-500 rounded-full"></span>

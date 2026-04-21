@@ -24,7 +24,8 @@ model Location {
   // Relations to data tables
   measures     MeasureLog[]
   pheocReports PheocReport[]
-  vulnerables  VulnerableData[]
+  vulnerables         VulnerableData[]
+  vulnerablesByPass   VulnerableDataByPass[]
   inventories  InventoryLog[]
   cleanRooms   CleanRoomReport[]
   operations   OperationLog[]
@@ -95,6 +96,16 @@ model VulnerableData {
   groupType   String // เด็กเล็ก, หญิงตั้งครรภ์, ผู้สูงอายุ, ติดเตียง, โรคหัวใจ, โรคทางเดินหายใจ [cite: 52]
   targetCount Int      @default(0) // จำนวนเป้าหมาย (คน) [cite: 52]
   recordDate  DateTime // วันที่บันทึกข้อมูล [cite: 51]
+
+  locationId Int
+  location   Location @relation(fields: [locationId], references: [id])
+}
+
+model VulnerableDataByPass {
+  id          Int      @id @default(autoincrement())
+  groupType   String // เด็กเล็ก, หญิงตั้งครรภ์, ผู้สูงอายุ, ติดเตียง, โรคหัวใจ, โรคทางเดินหายใจ
+  targetCount Int      @default(0) // จำนวนเป้าหมาย (คน)
+  recordDate  DateTime // วันที่บันทึกข้อมูล
 
   locationId Int
   location   Location @relation(fields: [locationId], references: [id])

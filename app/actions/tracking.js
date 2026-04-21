@@ -70,13 +70,14 @@ export async function getWeeklyStaffTracking({ page = 1, filterStatus = 'all', r
         })
 
         // Fetch all reports for the current week to check who has filed what
-        const [inventory, cleanRoom, operations, activeCare, incidents, vulnerable, measures] = await Promise.all([
+        const [inventory, cleanRoom, operations, activeCare, incidents, vulnerable, vulnerableByPass, measures] = await Promise.all([
             prisma.inventoryLog.findMany({ where: { recordDate: { gte: firstDay, lte: lastDay } }, select: { locationId: true, itemName: true } }),
             prisma.cleanRoomReport.findMany({ where: { recordDate: { gte: firstDay, lte: lastDay } }, select: { locationId: true, placeType: true } }),
             prisma.operationLog.findMany({ where: { recordDate: { gte: firstDay, lte: lastDay } }, select: { locationId: true, activityType: true } }),
             prisma.activeCareLog.findMany({ where: { recordDate: { gte: firstDay, lte: lastDay } }, select: { locationId: true, activity: true } }),
             prisma.staffIncident.findMany({ where: { recordDate: { gte: firstDay, lte: lastDay } }, select: { locationId: true, staffName: true } }),
             prisma.vulnerableData.findMany({ where: { recordDate: { gte: firstDay, lte: lastDay } }, select: { locationId: true, groupType: true } }),
+            prisma.vulnerableDataByPass.findMany({ where: { recordDate: { gte: firstDay, lte: lastDay } }, select: { locationId: true, groupType: true } }),
             prisma.measureLog.findMany({ where: { createdAt: { gte: firstDay, lte: lastDay } }, select: { locationId: true, recordedBy: true } })
         ])
 
@@ -88,7 +89,7 @@ export async function getWeeklyStaffTracking({ page = 1, filterStatus = 'all', r
                 operations: hasReported(user, operations, 'activityType'),
                 activeCare: hasReported(user, activeCare, 'activity'),
                 incidents: hasReported(user, incidents, 'staffName'),
-                vulnerable: vulnerable.some(v => v.locationId === user.locationId),
+                vulnerable: vulnerable.some(v => v.locationId === user.locationId) || vulnerableByPass.some(v => v.locationId === user.locationId),
                 measures: measures.some(m => m.locationId === user.locationId && m.recordedBy === user.orgName)
             }
             const completedCount = Object.values(reports).filter(Boolean).length
@@ -154,7 +155,7 @@ export async function getOverallTrackingExport() {
             isApproved: true
         }
 
-        const [users, inventory, cleanRoom, operations, activeCare, incidents, vulnerable, measures] = await Promise.all([
+        const [users, inventory, cleanRoom, operations, activeCare, incidents, vulnerable, vulnerableByPass, measures] = await Promise.all([
             prisma.user.findMany({ where, include: { location: true }, orderBy: [{ location: { provinceName: 'asc' } }, { orgName: 'asc' }] }),
             prisma.inventoryLog.findMany({ select: { locationId: true, itemName: true } }),
             prisma.cleanRoomReport.findMany({ select: { locationId: true, placeType: true } }),
@@ -162,6 +163,7 @@ export async function getOverallTrackingExport() {
             prisma.activeCareLog.findMany({ select: { locationId: true, activity: true } }),
             prisma.staffIncident.findMany({ select: { locationId: true, staffName: true } }),
             prisma.vulnerableData.findMany({ select: { locationId: true, groupType: true } }),
+            prisma.vulnerableDataByPass.findMany({ select: { locationId: true, groupType: true } }),
             prisma.measureLog.findMany({ select: { locationId: true, recordedBy: true } })
         ])
 
@@ -172,7 +174,7 @@ export async function getOverallTrackingExport() {
                 operations: hasReported(user, operations, 'activityType'),
                 activeCare: hasReported(user, activeCare, 'activity'),
                 incidents: hasReported(user, incidents, 'staffName'),
-                vulnerable: vulnerable.some(v => v.locationId === user.locationId),
+                vulnerable: vulnerable.some(v => v.locationId === user.locationId) || vulnerableByPass.some(v => v.locationId === user.locationId),
                 measures: measures.some(m => m.locationId === user.locationId && m.recordedBy === user.orgName)
             }
             const hasEverReported = Object.values(reports).some(Boolean)

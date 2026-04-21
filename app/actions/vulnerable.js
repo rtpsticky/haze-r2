@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
-export async function getVulnerableData(dateStr) {
+export async function getVulnerableData(dateStr, targetLocationId = null) {
     const session = await getSession()
     if (!session) return []
 
@@ -12,23 +12,46 @@ export async function getVulnerableData(dateStr) {
         where: { id: session.userId },
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
+    if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
 
     const targetDate = new Date(dateStr)
-    // Create Date range for the whole day to be safe, or just match the exact date stored if we store specific time.
-    // Schema says `recordDate DateTime`. Ideally we store YYYY-MM-DD 00:00:00.
-
-    // For querying, let's look for records on that specific calendar date.
-    // Since prisma DateTime is full timestamp, we need to compare range start/end of day.
     const startOfDay = new Date(targetDate)
     startOfDay.setHours(0, 0, 0, 0)
 
     const endOfDay = new Date(targetDate)
     endOfDay.setHours(23, 59, 59, 999)
 
+    // Determine target location: use user's location or the one provided (if authorized)
+    let locationId = user.locationId
+    if (targetLocationId && (user.role === 'ADMIN' || user.role === 'HEALTH_REGION' || user.role === 'SSJ')) {
+        locationId = parseInt(targetLocationId)
+        
+        // Security check for SSJ
+        if (user.role === 'SSJ') {
+            const targetLoc = await prisma.location.findUnique({ where: { id: locationId } })
+            const userLoc = await prisma.location.findUnique({ where: { id: user.locationId } })
+            if (!targetLoc || targetLoc.provinceName !== userLoc.provinceName) {
+                return [] // Forbidden access to other provinces
+            }
+        }
+    }
+
+    // Check ByPass table first
+    const bypassData = await prisma.vulnerableDataByPass.findMany({
+        where: {
+            locationId: locationId,
+            recordDate: {
+                gte: startOfDay,
+                lte: endOfDay
+            }
+        }
+    })
+
+    if (bypassData.length > 0) return bypassData
+
     const data = await prisma.vulnerableData.findMany({
         where: {
-            locationId: user.locationId,
+            locationId: locationId,
             recordDate: {
                 gte: startOfDay,
                 lte: endOfDay
@@ -54,7 +77,7 @@ export async function saveVulnerableData(prevState, formData) {
     }
 
     // Only authorized roles can save this data
-    if (!['SSO', 'ADMIN', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
+    if (!['SSJ', 'SSO', 'ADMIN', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         return { message: 'ไม่มีสิทธิ์ในการบันทึกข้อมูล', success: false }
     }
 
@@ -73,31 +96,50 @@ export async function saveVulnerableData(prevState, formData) {
     ]
 
     try {
+        const isByPass = user.role === 'SSJ' || user.role === 'ADMIN'
+        const targetTable = isByPass ? prisma.vulnerableDataByPass : prisma.vulnerableData
+        
+        let targetLocationId = user.locationId
+        const formLocationId = formData.get('locationId')
+        
+        if (isByPass && formLocationId) {
+            targetLocationId = parseInt(formLocationId)
+            
+            // Security check for SSJ: must be in same province
+            if (user.role === 'SSJ') {
+                const targetLoc = await prisma.location.findUnique({ where: { id: targetLocationId } })
+                const userLoc = await prisma.location.findUnique({ where: { id: user.locationId } })
+                if (!targetLoc || targetLoc.provinceName !== userLoc.provinceName) {
+                    return { message: 'ไม่มีสิทธิ์จัดการข้อมูลข้ามจังหวัด', success: false }
+                }
+            }
+        }
+
         for (const group of groups) {
             const countStr = formData.get(group.key)
             const count = parseInt(countStr) || 0
 
             // Check if record exists for this day/location/group
-            const existing = await prisma.vulnerableData.findFirst({
+            const existing = await targetTable.findFirst({
                 where: {
-                    locationId: user.locationId,
+                    locationId: targetLocationId,
                     groupType: group.label,
                     recordDate: recordDate
                 }
             })
 
             if (existing) {
-                await prisma.vulnerableData.update({
+                await targetTable.update({
                     where: { id: existing.id },
                     data: { targetCount: count }
                 })
             } else {
-                await prisma.vulnerableData.create({
+                await targetTable.create({
                     data: {
                         groupType: group.label,
                         targetCount: count,
                         recordDate: recordDate,
-                        locationId: user.locationId
+                        locationId: targetLocationId
                     }
                 })
             }
@@ -120,7 +162,7 @@ export async function updateVulnerableRecords(prevState, formData) {
     const user = await prisma.user.findUnique({ where: { id: session.userId } })
     if (!user) return { message: 'User not found', success: false }
 
-    if (!['SSO', 'ADMIN', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
+    if (!['SSJ', 'SSO', 'ADMIN', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         return { message: 'ไม่มีสิทธิ์ในการแก้ไขข้อมูล', success: false }
     }
 
@@ -140,15 +182,33 @@ export async function updateVulnerableRecords(prevState, formData) {
 
     try {
         for (const { id, count } of updates) {
-            const record = await prisma.vulnerableData.findUnique({ where: { id } })
+            // Check both tables
+            let record = await prisma.vulnerableData.findUnique({ where: { id } })
+            let isByPass = false
+            
+            if (!record) {
+                record = await prisma.vulnerableDataByPass.findUnique({ where: { id } })
+                isByPass = true
+            }
+            
             if (!record) continue
 
-            // ตรวจสอบสิทธิ์ (ยกเว้น ADMIN และ HEALTH_REGION)
-            if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && record.locationId !== user.locationId) {
-                return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานอื่น', success: false }
+            // ตรวจสอบสิทธิ์
+            if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
+                if (user.role === 'SSJ') {
+                    // SSJ check: province must match
+                    const targetLoc = await prisma.location.findUnique({ where: { id: record.locationId } })
+                    const userLoc = await prisma.location.findUnique({ where: { id: user.locationId } })
+                    if (!targetLoc || targetLoc.provinceName !== userLoc.provinceName) {
+                        return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของจังหวัดอื่น', success: false }
+                    }
+                } else if (record.locationId !== user.locationId) {
+                    return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานอื่น', success: false }
+                }
             }
 
-            await prisma.vulnerableData.update({
+            const targetTable = isByPass ? prisma.vulnerableDataByPass : prisma.vulnerableData
+            await targetTable.update({
                 where: { id },
                 data: { targetCount: count }
             })
@@ -181,19 +241,38 @@ export async function getVulnerableHistory() {
         where = { location: { provinceName: user.location.provinceName } }
     }
 
-    const data = await prisma.vulnerableData.findMany({
-        where,
-        orderBy: {
-            recordDate: 'desc',
-        },
-        include: {
-            location: true
+    const [normalData, bypassData] = await Promise.all([
+        prisma.vulnerableData.findMany({
+            where,
+            orderBy: { recordDate: 'desc' },
+            include: { location: true }
+        }),
+        prisma.vulnerableDataByPass.findMany({
+            where,
+            orderBy: { recordDate: 'desc' },
+            include: { location: true }
+        })
+    ])
+
+    // Group ByPass data first for easy lookup
+    const bypassMap = new Map()
+    bypassData.forEach(r => {
+        const key = `${r.recordDate.toISOString().split('T')[0]}-${r.locationId}-${r.groupType}`
+        bypassMap.set(key, r)
+    })
+
+    // Combine data: use bypass if exists for (date, location, groupType)
+    const combinedData = [...bypassData]
+    normalData.forEach(r => {
+        const key = `${r.recordDate.toISOString().split('T')[0]}-${r.locationId}-${r.groupType}`
+        if (!bypassMap.has(key)) {
+            combinedData.push(r)
         }
     })
 
     // Group by date and location
     const history = {}
-    data.forEach(record => {
+    combinedData.forEach(record => {
         const dateStr = record.recordDate.toISOString().split('T')[0]
         const locationKey = record.locationId
         const key = `${dateStr}-${locationKey}`
@@ -204,7 +283,8 @@ export async function getVulnerableHistory() {
                 locationId: record.locationId,
                 locationName: record.location?.districtName || record.location?.provinceName || '',
                 totalCount: 0,
-                records: []
+                records: [],
+                isByPass: bypassData.some(b => b.locationId === record.locationId && b.recordDate.toISOString().split('T')[0] === dateStr)
             }
         }
         history[key].totalCount += record.targetCount
@@ -223,7 +303,7 @@ export async function deleteVulnerableReport(dateStr, targetLocationId) {
         select: { id: true, locationId: true, role: true }
     })
 
-    if (!user || !['SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
+    if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
         return { success: false, message: 'Forbidden: Only authorized roles can delete reports' }
     }
 
@@ -236,20 +316,40 @@ export async function deleteVulnerableReport(dateStr, targetLocationId) {
     // Determine location to delete
     let deleteLocationId = user.locationId
 
-    if (targetLocationId && (user.role === 'ADMIN' || user.role === 'HEALTH_REGION')) {
+    if (targetLocationId && (user.role === 'ADMIN' || user.role === 'HEALTH_REGION' || user.role === 'SSJ')) {
         deleteLocationId = targetLocationId
+        
+        // Security check for SSJ
+        if (user.role === 'SSJ') {
+            const targetLoc = await prisma.location.findUnique({ where: { id: deleteLocationId } })
+            const userLoc = await prisma.location.findUnique({ where: { id: user.locationId } })
+            if (!targetLoc || targetLoc.provinceName !== userLoc.provinceName) {
+                return { success: false, message: 'ไม่มีสิทธิ์ลบข้อมูลข้ามจังหวัด' }
+            }
+        }
     }
 
     try {
-        await prisma.vulnerableData.deleteMany({
-            where: {
-                locationId: deleteLocationId,
-                recordDate: {
-                    gte: startOfDay,
-                    lte: endOfDay
+        await Promise.all([
+            prisma.vulnerableData.deleteMany({
+                where: {
+                    locationId: deleteLocationId,
+                    recordDate: {
+                        gte: startOfDay,
+                        lte: endOfDay
+                    }
                 }
-            }
-        })
+            }),
+            prisma.vulnerableDataByPass.deleteMany({
+                where: {
+                    locationId: deleteLocationId,
+                    recordDate: {
+                        gte: startOfDay,
+                        lte: endOfDay
+                    }
+                }
+            })
+        ])
         revalidatePath('/vulnerable')
         return { success: true, message: 'ลบข้อมูลเรียบร้อยแล้ว' }
     } catch (error) {
@@ -280,11 +380,30 @@ export async function getVulnerableExportData() {
         whereClause = { location: { provinceName: user.location.provinceName } }
     }
 
-    const records = await prisma.vulnerableData.findMany({
-        where: whereClause,
-        orderBy: { recordDate: 'desc' },
-        include: {
-            location: true
+    const [normalRecords, bypassRecords] = await Promise.all([
+        prisma.vulnerableData.findMany({
+            where: whereClause,
+            orderBy: { recordDate: 'desc' },
+            include: { location: true }
+        }),
+        prisma.vulnerableDataByPass.findMany({
+            where: whereClause,
+            orderBy: { recordDate: 'desc' },
+            include: { location: true }
+        })
+    ])
+
+    const bypassMap = new Map()
+    bypassRecords.forEach(r => {
+        const key = `${r.recordDate.toISOString().split('T')[0]}-${r.locationId}-${r.groupType}`
+        bypassMap.set(key, r)
+    })
+
+    const records = [...bypassRecords]
+    normalRecords.forEach(r => {
+        const key = `${r.recordDate.toISOString().split('T')[0]}-${r.locationId}-${r.groupType}`
+        if (!bypassMap.has(key)) {
+            records.push(r)
         }
     })
 

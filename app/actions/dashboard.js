@@ -126,16 +126,51 @@ export async function getDashboardStats(filters = {}) {
             }
         });
 
-        // 3. VulnerableData Stats (Total Targets by Group) - FILTERED
-        const vulnerableStats = await prisma.vulnerableData.groupBy({
-            by: ['groupType'],
-            where: whereClause,
-            _sum: {
-                targetCount: true,
-            },
+        // 3. VulnerableData Stats (Total Targets by Group) - Merged with ByPass province-level priority
+        const [normalVulnerable, bypassVulnerable, locationsData] = await Promise.all([
+            prisma.vulnerableData.findMany({
+                where: whereClause,
+                include: { location: true }
+            }),
+            prisma.vulnerableDataByPass.findMany({
+                where: whereClause,
+                include: { location: true }
+            }),
+            prisma.location.findMany()
+        ]);
+
+        // Map locationId to provinceName for easy lookup
+        const locMap = {};
+        locationsData.forEach(l => locMap[l.id] = l.provinceName);
+
+        // Identify which provinces have ANY bypass data
+        const provincesWithByPass = new Set();
+        bypassVulnerable.forEach(r => {
+            const pName = r.location?.provinceName || locMap[r.locationId];
+            if (pName) provincesWithByPass.add(pName);
         });
 
-        const totalVulnerable = vulnerableStats.reduce((acc, cur) => acc + (cur._sum.targetCount || 0), 0);
+        // Filter normal data: Ignore any record from a province that has bypass data
+        const filteredNormal = normalVulnerable.filter(r => {
+            const pName = r.location?.provinceName || locMap[r.locationId];
+            return !provincesWithByPass.has(pName);
+        });
+
+        // Combine: All ByPass records + Normal records from provinces without ByPass
+        const combinedData = [...bypassVulnerable, ...filteredNormal];
+
+        const vulnerableGroupSums = {};
+        combinedData.forEach(record => {
+            if (!vulnerableGroupSums[record.groupType]) vulnerableGroupSums[record.groupType] = 0;
+            vulnerableGroupSums[record.groupType] += record.targetCount;
+        });
+
+        const vulnerableStats = Object.entries(vulnerableGroupSums).map(([groupType, sum]) => ({
+            groupType,
+            _sum: { targetCount: sum }
+        }));
+
+        const totalVulnerable = Object.values(vulnerableGroupSums).reduce((acc, cur) => acc + cur, 0);
 
         // 4. InventoryLog Stats (Latest Snapshot by Location + Item) - FILTERED
         // We need the latest record for each (locationId, itemName) pair

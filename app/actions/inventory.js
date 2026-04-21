@@ -28,18 +28,14 @@ export async function getInventoryData(dateStr) {
                 gte: startOfDay,
                 lte: endOfDay
             },
-            // Filter by item name containing our org name if PCU/HOSPITAL
-            itemName: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                ? { contains: `[${user.orgName}]` } 
+            // Filter by organization name for isolation
+            recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                ? user.orgName 
                 : undefined
         }
     })
 
-    // Strip [orgName] from results for the form to match its keys
-    return data.map(record => ({
-        ...record,
-        itemName: record.itemName.split(' [')[0]
-    }))
+    return data
 }
 
 export async function saveInventoryData(prevState, formData) {
@@ -72,13 +68,11 @@ export async function saveInventoryData(prevState, formData) {
             const countStr = formData.get(item.key)
             const count = parseInt(countStr) || 0
             
-            // Append orgName to itemName for isolation
-            const isolatedItemName = `${item.label} [${user.orgName}]`
-
             const existing = await prisma.inventoryLog.findFirst({
                 where: {
                     locationId: user.locationId,
-                    itemName: isolatedItemName,
+                    itemName: item.label,
+                    recordedBy: user.orgName,
                     recordDate: recordDate
                 }
             })
@@ -91,10 +85,11 @@ export async function saveInventoryData(prevState, formData) {
             } else {
                 await prisma.inventoryLog.create({
                     data: {
-                        itemName: isolatedItemName,
+                        itemName: item.label,
                         stockCount: count,
                         recordDate: recordDate,
-                        locationId: user.locationId
+                        locationId: user.locationId,
+                        recordedBy: user.orgName
                     }
                 })
             }
@@ -172,10 +167,10 @@ export async function getInventoryHistory() {
         where = {}
     } else if (user.role === 'SSJ') {
         where = { location: { provinceName: user.location.provinceName } }
-    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') {
         where = { 
             locationId: user.locationId,
-            itemName: { contains: `[${user.orgName}]` }
+            recordedBy: user.orgName
         }
     }
 
@@ -191,15 +186,10 @@ export async function getInventoryHistory() {
 
     // Post-process data to strip [orgName] and identify orgName from itemName for admins/SSJ
     const processedData = data.map(record => {
-        const parts = record.itemName.split(' [')
-        const itemName = parts[0]
-        const extractedOrg = parts[1] ? parts[1].replace(']', '') : (record.location?.districtName || '')
-        
         return {
             ...record,
-            originalItemName: record.itemName,
-            itemName: itemName,
-            orgNameFromItem: extractedOrg
+            itemName: record.itemName,
+            orgNameFromItem: record.recordedBy || record.location?.districtName || ''
         }
     })
 
@@ -262,8 +252,8 @@ export async function deleteInventoryReport(dateStr, targetLocationId) {
                     lte: endOfDay
                 },
                 // If not admin, delete only your org's items
-                itemName: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
-                    ? { contains: `[${user.orgName}]` } 
+                recordedBy: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                    ? user.orgName 
                     : undefined
             }
         })
@@ -297,10 +287,10 @@ export async function getInventoryExportData() {
         whereClause = { location: { provinceName: user.location.provinceName } }
     } else if (user.role === 'SSO') {
         whereClause = { locationId: user.locationId }
-    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') {
         whereClause = { 
             locationId: user.locationId,
-            itemName: { contains: `[${user.orgName}]` }
+            recordedBy: user.orgName
         }
     }
 
@@ -313,14 +303,10 @@ export async function getInventoryExportData() {
     })
 
     return records.map(r => {
-        const parts = r.itemName.split(' [')
-        const itemName = parts[0]
-        const extractedOrg = parts[1] ? parts[1].replace(']', '') : (r.location?.districtName || '-')
-
         return {
             ...r,
-            itemName: itemName,
-            orgName: extractedOrg
+            itemName: r.itemName,
+            orgName: r.recordedBy || r.location?.districtName || '-'
         }
     })
 }
