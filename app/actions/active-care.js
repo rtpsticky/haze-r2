@@ -34,7 +34,7 @@ export async function getActiveCareData(dateString, requestedLocationId = null) 
                     locationId: locationId,
                     recordDate: date,
                     // Filter by organization for isolation
-                    recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                    recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                         ? user.orgName 
                         : undefined
                 }
@@ -111,7 +111,7 @@ export async function getActiveCareHistory(locationId = null) {
             where: {
                 ...where,
                 // Filter by organization
-                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                     ? user.orgName 
                     : undefined
             },
@@ -157,7 +157,7 @@ export async function deleteActiveCareData(dateString, locationId) {
                 where: { 
                     locationId: id, 
                     recordDate: date,
-                    recordedBy: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                    recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                         ? user.orgName 
                         : undefined
                 }
@@ -272,7 +272,7 @@ export async function getActiveCareExportData() {
         prisma.activeCareLog.findMany({
             where: {
                 ...whereClause,
-                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                     ? user.orgName 
                     : undefined
             },

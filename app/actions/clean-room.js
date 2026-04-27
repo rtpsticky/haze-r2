@@ -29,7 +29,7 @@ export async function getCleanRoomData(dateStr) {
                 lte: endOfDay
             },
             // Filter by organization name
-            recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+            recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                 ? user.orgName 
                 : undefined
         }
@@ -151,8 +151,13 @@ export async function updateCleanRoomRecords(records) {
             const existing = await prisma.cleanRoomReport.findUnique({ where: { id: rec.id } })
             if (!existing) continue
 
-            if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && existing.locationId !== user.locationId) {
-                return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานอื่น', success: false }
+            if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
+                if (existing.locationId !== user.locationId) {
+                    return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานอื่น', success: false }
+                }
+                if ((user.role === 'PCU' || user.role === 'HOSPITAL') && existing.recordedBy !== user.orgName) {
+                    return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานตนเองเท่านั้น', success: false }
+                }
             }
 
             await prisma.cleanRoomReport.update({
@@ -184,7 +189,7 @@ export async function getCleanRoomHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true, location: { select: { provinceName: true } } }
+        select: { id: true, locationId: true, role: true, orgName: true, location: { select: { provinceName: true } } }
     })
 
     if (!user) return []
@@ -194,7 +199,7 @@ export async function getCleanRoomHistory() {
         where = {}
     } else if (user.role === 'SSJ') {
         where = { location: { provinceName: user.location.provinceName } }
-    } else if (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') {
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
         where = { 
             locationId: user.locationId,
             recordedBy: user.orgName
@@ -256,7 +261,7 @@ export async function deleteCleanRoomReport(dateStr, targetLocationId) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true }
+        select: { id: true, locationId: true, role: true, orgName: true }
     })
 
     if (!user) {
@@ -301,7 +306,7 @@ export async function getCleanRoomExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true, location: { select: { provinceName: true } } }
+        select: { role: true, locationId: true, orgName: true, location: { select: { provinceName: true } } }
     })
 
     if (!user) {
@@ -313,7 +318,7 @@ export async function getCleanRoomExportData() {
         whereClause = {}
     } else if (user.role === 'SSJ') {
         whereClause = { location: { provinceName: user.location.provinceName } }
-    } else if (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') {
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
         whereClause = { 
             locationId: user.locationId,
             recordedBy: user.orgName

@@ -29,7 +29,7 @@ export async function getInventoryData(dateStr) {
                 lte: endOfDay
             },
             // Filter by organization name for isolation
-            recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+            recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                 ? user.orgName 
                 : undefined
         }
@@ -132,8 +132,13 @@ export async function updateInventoryRecords(prevState, formData) {
             if (!record) continue
 
             // ตรวจสอบสิทธิ์ (ยกเว้น ADMIN และ HEALTH_REGION)
-            if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && record.locationId !== user.locationId) {
-                return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานอื่น', success: false }
+            if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
+                if (record.locationId !== user.locationId) {
+                    return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานอื่น', success: false }
+                }
+                if ((user.role === 'PCU' || user.role === 'HOSPITAL') && record.recordedBy !== user.orgName) {
+                    return { message: 'ไม่มีสิทธิ์แก้ไขข้อมูลของหน่วยงานตนเองเท่านั้น', success: false }
+                }
             }
 
             await prisma.inventoryLog.update({
@@ -157,7 +162,7 @@ export async function getInventoryHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true, location: { select: { provinceName: true } } }
+        select: { id: true, locationId: true, role: true, orgName: true, location: { select: { provinceName: true } } }
     })
 
     if (!user) return []
@@ -167,7 +172,7 @@ export async function getInventoryHistory() {
         where = {}
     } else if (user.role === 'SSJ') {
         where = { location: { provinceName: user.location.provinceName } }
-    } else if (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') {
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
         where = { 
             locationId: user.locationId,
             recordedBy: user.orgName
@@ -287,7 +292,7 @@ export async function getInventoryExportData() {
         whereClause = { location: { provinceName: user.location.provinceName } }
     } else if (user.role === 'SSO') {
         whereClause = { locationId: user.locationId }
-    } else if (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') {
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
         whereClause = { 
             locationId: user.locationId,
             recordedBy: user.orgName

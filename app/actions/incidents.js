@@ -236,8 +236,13 @@ export async function deleteIncident(id) {
     const existing = await prisma.staffIncident.findUnique({ where: { id } })
     if (!existing) return { success: false, message: 'Incident not found' }
 
-    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION' && (existing.locationId !== user.locationId || !existing.staffName.includes(`[${user.orgName}]`))) {
-        return { success: false, message: 'Unauthorized delete' }
+    if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
+        if (existing.locationId !== user.locationId) {
+            return { success: false, message: 'ไม่มีสิทธิ์เข้าถึงข้อมูลข้ามพื้นที่' }
+        }
+        if ((user.role === 'PCU' || user.role === 'HOSPITAL') && !existing.staffName.includes(`[${user.orgName}]`)) {
+            return { success: false, message: 'ไม่มีสิทธิ์ลบข้อมูลของหน่วยงานอื่น' }
+        }
     }
 
     try {
@@ -271,11 +276,13 @@ export async function getIncidentsExportData() {
             include: { location: true }
         })
         whereClause = { location: { provinceName: userWithLocation.location.provinceName } }
-    } else if (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') {
+    } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
         whereClause = { 
             locationId: user.locationId,
             staffName: { contains: `[${user.orgName}]` }
         }
+    } else if (user.role === 'SSO') {
+        whereClause = { locationId: user.locationId }
     }
 
     const records = await prisma.staffIncident.findMany({

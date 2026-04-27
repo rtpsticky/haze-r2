@@ -41,7 +41,7 @@ export async function getOperationData(dateString, requestedLocationId) {
                 locationId: locationId,
                 recordDate: date,
                 // Filter by organization for isolation
-                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                     ? user.orgName 
                     : undefined
             }
@@ -72,7 +72,7 @@ export async function getOperationData(dateString, requestedLocationId) {
                 lte: date
             },
             // Filter by organization for isolation
-            recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+            recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                 ? user.orgName 
                 : undefined
         }
@@ -148,7 +148,7 @@ export async function getOperationHistory(locationId = null) {
             where: {
                 ...where,
                 // If special roles, only show their own
-                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                     ? user.orgName 
                     : undefined
             },
@@ -205,7 +205,7 @@ export async function deleteOperationData(dateString, locationId) {
                 where: { 
                     locationId: id, 
                     recordDate: date,
-                    recordedBy: (user.role !== 'ADMIN' && user.role !== 'HEALTH_REGION') 
+                    recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                         ? user.orgName 
                         : undefined
                 }
@@ -405,7 +405,7 @@ export async function getOperationsExportData() {
         prisma.operationLog.findMany({
             where: {
                 ...whereClause,
-                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL' || user.role === 'SSO') 
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
                     ? user.orgName 
                     : undefined
             },
