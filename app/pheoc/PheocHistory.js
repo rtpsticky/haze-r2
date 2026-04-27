@@ -43,6 +43,18 @@ export default function PheocHistory({ reports, onEdit, isAdmin }) {
         }
     }
 
+    const getRoleLabel = (role) => {
+        const mapping = {
+            'HOSPITAL': 'โรงพยาบาล',
+            'PCU': 'โรงพยาบาลส่งเสริมสุขภาพตำบล',
+            'SSO': 'สำนักงานสาธารณสุขอำเภอ',
+            'SSJ': 'สำนักงานสาธารณสุขจังหวัด',
+            'HEALTH_REGION': 'เขตสุขภาพ',
+            'ADMIN': 'ผู้ดูแลระบบ'
+        }
+        return mapping[role] || role || '-'
+    }
+
     if (reports.length === 0) {
         return <div className="text-center text-slate-500 py-8">ไม่มีประวัติการรายงาน</div>
     }
@@ -58,6 +70,7 @@ export default function PheocHistory({ reports, onEdit, isAdmin }) {
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">จังหวัด</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">อำเภอ</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ตำบล</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">สถานะ</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ระดับตอบโต้</th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ไฟล์แนบ</th>
@@ -75,6 +88,9 @@ export default function PheocHistory({ reports, onEdit, isAdmin }) {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                         {report.location?.districtName || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                                        {report.location?.subDistrict || '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium

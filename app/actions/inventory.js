@@ -162,7 +162,18 @@ export async function getInventoryHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true, orgName: true, location: { select: { provinceName: true } } }
+        select: { 
+            id: true, 
+            locationId: true, 
+            role: true, 
+            orgName: true, 
+            location: { 
+                select: { 
+                    provinceName: true, 
+                    districtName: true 
+                } 
+            } 
+        }
     })
 
     if (!user) return []
@@ -172,6 +183,13 @@ export async function getInventoryHistory() {
         where = {}
     } else if (user.role === 'SSJ') {
         where = { location: { provinceName: user.location.provinceName } }
+    } else if (user.role === 'SSO') {
+        where = { 
+            location: { 
+                provinceName: user.location.provinceName,
+                districtName: user.location.districtName
+            } 
+        }
     } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
         where = { 
             locationId: user.locationId,
@@ -198,6 +216,18 @@ export async function getInventoryHistory() {
         }
     })
 
+    // Fetch users to map orgName to role
+    const locationIds = [...new Set(data.map(r => r.locationId))]
+    const users = await prisma.user.findMany({
+        where: { locationId: { in: locationIds } },
+        select: { orgName: true, role: true, locationId: true }
+    })
+
+    const roleMap = {}
+    users.forEach(u => {
+        roleMap[`${u.locationId}-${u.orgName}`] = u.role
+    })
+
     // Group by date, location AND organization (extracted from itemName)
     const history = {}
     processedData.forEach(record => {
@@ -210,6 +240,10 @@ export async function getInventoryHistory() {
                 date: dateStr,
                 locationId: record.locationId,
                 locationName: record.orgNameFromItem || record.location?.districtName || '',
+                recordedByRole: roleMap[`${record.locationId}-${record.recordedBy}`] || '',
+                provinceName: record.location?.provinceName || '',
+                districtName: record.location?.districtName || '',
+                subDistrict: record.location?.subDistrict || '',
                 totalItems: 0,
                 records: []
             }
@@ -221,7 +255,10 @@ export async function getInventoryHistory() {
         })
     })
 
-    return Object.values(history).sort((a, b) => new Date(b.date) - new Date(a.date))
+    // Filter by totalItems > 0 and Sort
+    return Object.values(history)
+        .filter(h => h.totalItems > 0)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
 }
 
 export async function deleteInventoryReport(dateStr, targetLocationId) {
@@ -278,7 +315,17 @@ export async function getInventoryExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true, orgName: true, location: { select: { provinceName: true } } }
+        select: { 
+            role: true, 
+            locationId: true, 
+            orgName: true, 
+            location: { 
+                select: { 
+                    provinceName: true, 
+                    districtName: true 
+                } 
+            } 
+        }
     })
 
     if (!user) {
@@ -291,7 +338,12 @@ export async function getInventoryExportData() {
     } else if (user.role === 'SSJ') {
         whereClause = { location: { provinceName: user.location.provinceName } }
     } else if (user.role === 'SSO') {
-        whereClause = { locationId: user.locationId }
+        whereClause = { 
+            location: { 
+                provinceName: user.location.provinceName,
+                districtName: user.location.districtName
+            } 
+        }
     } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
         whereClause = { 
             locationId: user.locationId,

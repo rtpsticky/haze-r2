@@ -30,6 +30,18 @@ export default function ProactiveCareForm({ user }) {
     const [showSuccess, setShowSuccess] = useState(false)
     const [showModal, setShowModal] = useState(false)
 
+    const getRoleLabel = (role) => {
+        const mapping = {
+            'HOSPITAL': 'โรงพยาบาล',
+            'PCU': 'โรงพยาบาลส่งเสริมสุขภาพตำบล',
+            'SSO': 'สำนักงานสาธารณสุขอำเภอ',
+            'SSJ': 'สำนักงานสาธารณสุขจังหวัด',
+            'HEALTH_REGION': 'เขตสุขภาพ',
+            'ADMIN': 'ผู้ดูแลระบบ'
+        }
+        return mapping[role] || role || '-'
+    }
+
     // History & Location
     const [history, setHistory] = useState([])
     const [provinces, setProvinces] = useState([])
@@ -127,17 +139,19 @@ export default function ProactiveCareForm({ user }) {
     }
 
     // Modal Logic
-    const openModal = async (dateStr = null) => {
+    const openModal = async (dateStr = null, targetLocId = null) => {
         const targetDate = dateStr || new Date().toISOString().split('T')[0]
+        const locIdToUse = targetLocId || currentLocationId
         setEditDate(targetDate)
-        await loadFormData(targetDate)
+        await loadFormData(targetDate, locIdToUse)
         setShowModal(true)
     }
 
-    const loadFormData = async (date) => {
-        if (!currentLocationId) return
+    const loadFormData = async (date, locId = null) => {
+        const locIdToUse = locId || currentLocationId
+        if (!locIdToUse) return
         setIsLoading(true)
-        const res = await getActiveCareData(date, currentLocationId)
+        const res = await getActiveCareData(date, locIdToUse)
         if (res.success) {
             const newActiveCares = { ...formData.activeCares }
             Object.keys(newActiveCares).forEach(k => newActiveCares[k] = { households: '', people: '', riskGroups: '' })
@@ -193,10 +207,11 @@ export default function ProactiveCareForm({ user }) {
         })
     }
 
-    const handleDelete = async (dateStr) => {
+    const handleDelete = async (dateStr, locId = null) => {
+        const locIdToUse = locId || currentLocationId
         if (!confirm('ยืนยันการลบข้อมูลของวันที่ ' + dateStr + '?')) return
         startTransition(async () => {
-            const res = await deleteActiveCareData(dateStr, currentLocationId)
+            const res = await deleteActiveCareData(dateStr, locIdToUse)
             if (res.success) fetchHistory(currentLocationId)
             else alert(res.message)
         })
@@ -232,31 +247,45 @@ export default function ProactiveCareForm({ user }) {
 
             {/* History Table */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <table className="min-w-full divide-y divide-slate-100">
-                    <thead className="bg-slate-50">
-                        <tr>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">วันที่บันทึก</th>
-                            <th className="px-6 py-4 text-center text-sm font-semibold text-slate-600">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
-                        {history.length === 0 ? (
-                            <tr><td colSpan="2" className="px-6 py-8 text-center text-slate-400">ไม่พบข้อมูลประวัติการบันทึก</td></tr>
-                        ) : (
-                            history.map(dateStr => (
-                                <tr key={dateStr} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-4 text-sm text-slate-700">
-                                        {new Date(dateStr).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                    </td>
-                                    <td className="px-6 py-4 text-center flex items-center justify-center gap-3">
-                                        <button onClick={() => openModal(dateStr)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">แก้ไข</button>
-                                        <button onClick={() => handleDelete(dateStr)} className="text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">ลบ</button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-100">
+                        <thead className="bg-slate-50">
+                            <tr>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">วันที่บันทึก</th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">จังหวัด</th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">อำเภอ</th>
+                                <th className="px-6 py-4 text-left text-sm font-semibold text-slate-600">ตำบล</th>
+                                <th className="px-6 py-4 text-center text-sm font-semibold text-slate-600">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 bg-white">
+                            {history.length === 0 ? (
+                                <tr><td colSpan="5" className="px-6 py-8 text-center text-slate-400">ไม่พบข้อมูลประวัติการบันทึก</td></tr>
+                            ) : (
+                                history.map(item => (
+                                    <tr key={`${item.date}-${item.locationId}-${item.recordedBy}`} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-4 text-sm text-slate-700">
+                                            {new Date(item.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">
+                                            {item.provinceName || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">
+                                            {item.districtName || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-600">
+                                            {item.subDistrict || '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-center flex items-center justify-center gap-3">
+                                            <button onClick={() => openModal(item.date, item.locationId)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">แก้ไข</button>
+                                            <button onClick={() => handleDelete(item.date, item.locationId)} className="text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">ลบ</button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             {/* Modal */}

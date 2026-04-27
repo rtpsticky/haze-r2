@@ -48,6 +48,18 @@ export default function VulnerableHistory({ history, isAdmin, userRole }) {
         )
     }
 
+    const getRoleLabel = (role) => {
+        const mapping = {
+            'HOSPITAL': 'โรงพยาบาล',
+            'PCU': 'โรงพยาบาลส่งเสริมสุขภาพตำบล',
+            'SSO': 'สำนักงานสาธารณสุขอำเภอ',
+            'SSJ': 'สำนักงานสาธารณสุขจังหวัด',
+            'HEALTH_REGION': 'เขตสุขภาพ',
+            'ADMIN': 'ผู้ดูแลระบบ'
+        }
+        return mapping[role] || role || '-'
+    }
+
     const canEdit = ['SSO', 'ADMIN', 'HOSPITAL', 'RPS'].includes(userRole)
     const canDelete = ['SSO', 'ADMIN', 'HOSPITAL', 'RPS'].includes(userRole)
 
@@ -62,7 +74,9 @@ export default function VulnerableHistory({ history, isAdmin, userRole }) {
                         <thead className="bg-slate-50">
                             <tr>
                                 <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-slate-600">วันที่</th>
-                                {isAdmin && <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-slate-600">หน่วยงาน</th>}
+                                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-slate-600">จังหวัด</th>
+                                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-slate-600">อำเภอ</th>
+                                <th scope="col" className="px-6 py-3 text-left text-sm font-semibold text-slate-600">ตำบล</th>
                                 <th scope="col" className="px-6 py-3 text-center text-sm font-semibold text-slate-600">จำนวนรวม (คน)</th>
                                 <th scope="col" className="px-6 py-3 text-right text-sm font-semibold text-slate-600">จัดการ</th>
                             </tr>
@@ -77,11 +91,15 @@ export default function VulnerableHistory({ history, isAdmin, userRole }) {
                                             day: 'numeric'
                                         })}
                                     </td>
-                                    {isAdmin && (
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                            {item.locationName || '-'}
-                                        </td>
-                                    )}
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                        {item.provinceName || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                        {item.districtName || '-'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                                        {item.subDistrict || item.locationName || '-'}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
                                         <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-1 text-sm font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
                                             {item.totalCount.toLocaleString()}

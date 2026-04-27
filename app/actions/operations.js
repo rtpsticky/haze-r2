@@ -107,7 +107,17 @@ export async function getOperationHistory(locationId = null) {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { locationId: true, role: true, orgName: true, location: { select: { provinceName: true } } }
+        select: { 
+            locationId: true, 
+            role: true, 
+            orgName: true, 
+            location: { 
+                select: { 
+                    provinceName: true, 
+                    districtName: true 
+                } 
+            } 
+        }
     })
     if (!user) return { success: false, error: 'User not found' }
 
@@ -137,46 +147,88 @@ export async function getOperationHistory(locationId = null) {
             where = {}
         } else if (user.role === 'SSJ') {
             where = { location: { provinceName: user.location.provinceName } }
+        } else if (user.role === 'SSO') {
+            where = { 
+                location: { 
+                    provinceName: user.location.provinceName,
+                    districtName: user.location.districtName
+                } 
+            }
         } else {
             where = { locationId: user.locationId }
         }
     }
 
-    // Fetch distinct dates from all relevant tables
-    const [opsDates, vulnDates, supportDates] = await Promise.all([
+    // Fetch distinct records from all relevant tables to build history
+    const [opsRecords, vulnRecords, supportRecords] = await Promise.all([
         prisma.operationLog.findMany({
             where: {
                 ...where,
-                // If special roles, only show their own
-                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') 
-                    ? user.orgName 
-                    : undefined
+                recordedBy: (user.role === 'PCU' || user.role === 'HOSPITAL') ? user.orgName : undefined
             },
-            select: { recordDate: true },
-            distinct: ['recordDate']
+            include: { location: true }
         }),
         prisma.vulnerableData.findMany({
             where: { ...where, groupType: 'BEDRIDDEN_OP' },
-            select: { recordDate: true },
-            distinct: ['recordDate']
+            include: { location: true }
         }),
         prisma.localAdminSupport.findMany({
             where,
-            select: { recordDate: true },
-            distinct: ['recordDate']
+            include: { location: true }
         })
     ])
 
-    // Combine and Deduplicate
-    const allDates = new Set([
-        ...opsDates.map(d => d.recordDate.toISOString().split('T')[0]),
-        ...vulnDates.map(d => d.recordDate.toISOString().split('T')[0]),
-        ...supportDates.map(d => d.recordDate.toISOString().split('T')[0])
-    ])
+    // Fetch users to map orgName to role
+    const allRecords = [...opsRecords, ...vulnRecords, ...supportRecords]
+    const locationIds = [...new Set(allRecords.map(r => r.locationId))]
+    const users = await prisma.user.findMany({
+        where: { locationId: { in: locationIds } },
+        select: { orgName: true, role: true, locationId: true }
+    })
 
-    const sortedDates = Array.from(allDates).sort((a, b) => new Date(b) - new Date(a))
+    const roleMap = {}
+    users.forEach(u => {
+        roleMap[`${u.locationId}-${u.orgName}`] = u.role
+    })
 
-    return { success: true, data: sortedDates }
+    // Combine and Group by date and location
+    const historyMap = {}
+    const processRecords = (records, type) => {
+        records.forEach(r => {
+            const dateStr = r.recordDate.toISOString().split('T')[0]
+            const orgName = r.recordedBy || ''
+            const key = `${dateStr}-${r.locationId}-${orgName}`
+            if (!historyMap[key]) {
+                historyMap[key] = {
+                    date: dateStr,
+                    locationId: r.locationId,
+                    recordedBy: orgName,
+                    recordedByRole: roleMap[`${r.locationId}-${orgName}`] || '',
+                    provinceName: r.location?.provinceName || '',
+                    districtName: r.location?.districtName || '',
+                    subDistrict: r.location?.subDistrict || '',
+                    locationName: orgName || r.location?.districtName || '',
+                    totalCount: 0
+                }
+            }
+            
+            if (type === 'ops') historyMap[key].totalCount += (r.amount || 0)
+            if (type === 'vuln') historyMap[key].totalCount += (r.targetCount || 0)
+            if (type === 'support') {
+                historyMap[key].totalCount += (r.orgCount || 0) + (r.maskSupport || 0) + (r.dustNetSupport || 0) + (r.cleanRoomSupport || 0)
+            }
+        })
+    }
+
+    processRecords(opsRecords, 'ops')
+    processRecords(vulnRecords, 'vuln')
+    processRecords(supportRecords, 'support')
+
+    const sortedHistory = Object.values(historyMap)
+        .filter(h => h.totalCount > 0)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+
+    return { success: true, data: sortedHistory }
 }
 
 export async function deleteOperationData(dateString, locationId) {
@@ -390,7 +442,17 @@ export async function getOperationsExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true, orgName: true, location: { select: { provinceName: true } } }
+        select: { 
+            role: true, 
+            locationId: true, 
+            orgName: true, 
+            location: { 
+                select: { 
+                    provinceName: true, 
+                    districtName: true 
+                } 
+            } 
+        }
     })
     if (!user) return null
 

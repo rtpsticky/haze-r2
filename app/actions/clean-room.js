@@ -189,7 +189,18 @@ export async function getCleanRoomHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true, orgName: true, location: { select: { provinceName: true } } }
+        select: { 
+            id: true, 
+            locationId: true, 
+            role: true, 
+            orgName: true, 
+            location: { 
+                select: { 
+                    provinceName: true, 
+                    districtName: true 
+                } 
+            } 
+        }
     })
 
     if (!user) return []
@@ -199,6 +210,13 @@ export async function getCleanRoomHistory() {
         where = {}
     } else if (user.role === 'SSJ') {
         where = { location: { provinceName: user.location.provinceName } }
+    } else if (user.role === 'SSO') {
+        where = { 
+            location: { 
+                provinceName: user.location.provinceName,
+                districtName: user.location.districtName
+            } 
+        }
     } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
         where = { 
             locationId: user.locationId,
@@ -225,6 +243,18 @@ export async function getCleanRoomHistory() {
         }
     })
 
+    // Fetch users to map orgName to role
+    const locationIds = [...new Set(data.map(r => r.locationId))]
+    const users = await prisma.user.findMany({
+        where: { locationId: { in: locationIds } },
+        select: { orgName: true, role: true, locationId: true }
+    })
+
+    const roleMap = {}
+    users.forEach(u => {
+        roleMap[`${u.locationId}-${u.orgName}`] = u.role
+    })
+
     // Group by date and location
     const history = {}
 
@@ -239,6 +269,10 @@ export async function getCleanRoomHistory() {
                 dateStr: dateStr,
                 locationId: record.locationId,
                 locationName: record.orgNameFromType || record.location?.districtName || '',
+                recordedByRole: roleMap[`${record.locationId}-${record.recordedBy}`] || '',
+                provinceName: record.location?.provinceName || '',
+                districtName: record.location?.districtName || '',
+                subDistrict: record.location?.subDistrict || '',
                 totalPassed: 0,
                 totalTarget: 0,
                 totalPlaces: 0
@@ -250,7 +284,9 @@ export async function getCleanRoomHistory() {
         history[key].totalPlaces += (record.placeCount || 0)
     })
 
-    return Object.values(history).sort((a, b) => new Date(b.dateStr) - new Date(a.dateStr))
+    return Object.values(history)
+        .filter(h => h.totalPlaces > 0)
+        .sort((a, b) => new Date(b.dateStr) - new Date(a.dateStr))
 }
 
 export async function deleteCleanRoomReport(dateStr, targetLocationId) {
@@ -306,7 +342,17 @@ export async function getCleanRoomExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true, orgName: true, location: { select: { provinceName: true } } }
+        select: { 
+            role: true, 
+            locationId: true, 
+            orgName: true, 
+            location: { 
+                select: { 
+                    provinceName: true, 
+                    districtName: true 
+                } 
+            } 
+        }
     })
 
     if (!user) {
@@ -318,6 +364,13 @@ export async function getCleanRoomExportData() {
         whereClause = {}
     } else if (user.role === 'SSJ') {
         whereClause = { location: { provinceName: user.location.provinceName } }
+    } else if (user.role === 'SSO') {
+        whereClause = { 
+            location: { 
+                provinceName: user.location.provinceName,
+                districtName: user.location.districtName
+            } 
+        }
     } else if (user.role === 'PCU' || user.role === 'HOSPITAL') {
         whereClause = { 
             locationId: user.locationId,

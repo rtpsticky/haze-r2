@@ -11,6 +11,18 @@ export default function CleanRoomForm({ user }) {
     const [state, formAction, isPending] = useActionState(saveCleanRoomData, { message: '', success: false })
     const [date, setDate] = useState(new Date().toISOString().split('T')[0])
     const [formData, setFormData] = useState({})
+    
+    const getRoleLabel = (role) => {
+        const mapping = {
+            'HOSPITAL': 'โรงพยาบาล',
+            'PCU': 'โรงพยาบาลส่งเสริมสุขภาพตำบล',
+            'SSO': 'สำนักงานสาธารณสุขอำเภอ',
+            'SSJ': 'สำนักงานสาธารณสุขจังหวัด',
+            'HEALTH_REGION': 'เขตสุขภาพ',
+            'ADMIN': 'ผู้ดูแลระบบ'
+        }
+        return mapping[role] || role || '-'
+    }
     const [isLoadingData, setIsLoadingData] = useState(false)
     const [history, setHistory] = useState([])
     const [isLoadingHistory, setIsLoadingHistory] = useState(true)
@@ -282,44 +294,50 @@ export default function CleanRoomForm({ user }) {
                         <div className="p-6">
                             <h2 className="text-lg font-semibold text-slate-900 mb-4">ประวัติการบันทึกข้อมูล</h2>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-slate-200">
-                                    <thead className="bg-slate-50">
+                            <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">จังหวัด</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">อำเภอ</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ตำบล</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">จำนวนสถานที่</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">เป้าหมาย (ห้อง)</th>
+                                        <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">ผ่านมาตรฐาน (ห้อง)</th>
+                                        <th scope="col" className="relative px-6 py-3">
+                                            <span className="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-slate-200">
+                                    {isLoadingHistory ? (
                                         <tr>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
-                                            {(user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
-                                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">จำนวนสถานที่</th>
-                                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">เป้าหมาย (ห้อง)</th>
-                                            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">ผ่านมาตรฐาน (ห้อง)</th>
-                                            <th scope="col" className="relative px-6 py-3">
-                                                <span className="sr-only">Actions</span>
-                                            </th>
+                                            <td colSpan="8" className="px-6 py-4 text-center text-sm text-slate-500">กำลังโหลดข้อมูล...</td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-slate-200">
-                                        {isLoadingHistory ? (
-                                            <tr>
-                                                <td colSpan="5" className="px-6 py-4 text-center text-sm text-slate-500">กำลังโหลดข้อมูล...</td>
-                                            </tr>
-                                        ) : history.length === 0 ? (
-                                            <tr>
-                                                <td colSpan="5" className="px-6 py-4 text-center text-sm text-slate-500">ไม่พบประวัติการบันทึก</td>
-                                            </tr>
-                                        ) : (
-                                            history.map((record, idx) => (
-                                                <tr key={idx} className="hover:bg-slate-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
-                                                        {new Date(record.recordDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
-                                                    </td>
-                                                    {(user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && (
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                                            {record.locationName || '-'}
-                                                        </td>
-                                                    )}
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalPlaces}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalTarget}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center hover:font-bold hover:text-emerald-600 transition-colors cursor-default">
-                                                        {record.totalPassed}
-                                                    </td>
+                                    ) : history.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="8" className="px-6 py-4 text-center text-sm text-slate-500">ไม่พบประวัติการบันทึก</td>
+                                        </tr>
+                                    ) : (
+                                        history.map((record, idx) => (
+                                            <tr key={idx} className="hover:bg-slate-50">
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                                                    {new Date(record.recordDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                    {record.provinceName || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                    {record.districtName || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                    {record.subDistrict || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalPlaces}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalTarget}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center hover:font-bold hover:text-emerald-600 transition-colors cursor-default">
+                                                    {record.totalPassed}
+                                                </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                         {/* Actions Hidden for non-editors (unless logic inside handles it?) */}
                                                     </td>
@@ -402,7 +420,9 @@ export default function CleanRoomForm({ user }) {
                                 <thead className="bg-slate-50">
                                     <tr>
                                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">วันที่</th>
-                                        {(user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">หน่วยงาน</th>}
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">จังหวัด</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">อำเภอ</th>
+                                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ตำบล</th>
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">จำนวนสถานที่</th>
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">เป้าหมาย (ห้อง)</th>
                                         <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider">ผ่านมาตรฐาน (ห้อง)</th>
@@ -414,11 +434,11 @@ export default function CleanRoomForm({ user }) {
                                 <tbody className="bg-white divide-y divide-slate-200">
                                     {isLoadingHistory ? (
                                         <tr>
-                                            <td colSpan="5" className="px-6 py-4 text-center text-sm text-slate-500">กำลังโหลดข้อมูล...</td>
+                                            <td colSpan="8" className="px-6 py-4 text-center text-sm text-slate-500">กำลังโหลดข้อมูล...</td>
                                         </tr>
                                     ) : history.length === 0 ? (
                                         <tr>
-                                            <td colSpan="5" className="px-6 py-4 text-center text-sm text-slate-500">ไม่พบประวัติการบันทึก</td>
+                                            <td colSpan="8" className="px-6 py-4 text-center text-sm text-slate-500">ไม่พบประวัติการบันทึก</td>
                                         </tr>
                                     ) : (
                                         history.map((record, idx) => (
@@ -426,11 +446,15 @@ export default function CleanRoomForm({ user }) {
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                                                     {new Date(record.recordDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
                                                 </td>
-                                                {(user?.role === 'ADMIN' || user?.role === 'HEALTH_REGION') && (
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                                                        {record.locationName || '-'}
-                                                    </td>
-                                                )}
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                    {record.provinceName || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                    {record.districtName || '-'}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
+                                                    {record.subDistrict || '-'}
+                                                </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalPlaces}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center">{record.totalTarget}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 text-center hover:font-bold hover:text-emerald-600 transition-colors cursor-default">

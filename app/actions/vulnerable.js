@@ -229,7 +229,17 @@ export async function getVulnerableHistory() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { id: true, locationId: true, role: true, location: { select: { provinceName: true } } }
+        select: { 
+            id: true, 
+            locationId: true, 
+            role: true, 
+            location: { 
+                select: { 
+                    provinceName: true, 
+                    districtName: true 
+                } 
+            } 
+        }
     })
 
     if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) return []
@@ -239,6 +249,13 @@ export async function getVulnerableHistory() {
         where = {}
     } else if (user.role === 'SSJ') {
         where = { location: { provinceName: user.location.provinceName } }
+    } else if (user.role === 'SSO') {
+        where = { 
+            location: { 
+                provinceName: user.location.provinceName,
+                districtName: user.location.districtName
+            } 
+        }
     }
 
     const [normalData, bypassData] = await Promise.all([
@@ -270,6 +287,18 @@ export async function getVulnerableHistory() {
         }
     })
 
+    // Fetch roles for locations
+    const locationIds = [...new Set(combinedData.map(r => r.locationId))]
+    const locationUsers = await prisma.user.findMany({
+        where: { locationId: { in: locationIds } },
+        select: { locationId: true, role: true }
+    })
+    const locationRoleMap = {}
+    locationUsers.forEach(u => {
+        // Just take the first one found for that location as a guess
+        if (!locationRoleMap[u.locationId]) locationRoleMap[u.locationId] = u.role
+    })
+
     // Group by date and location
     const history = {}
     combinedData.forEach(record => {
@@ -282,6 +311,10 @@ export async function getVulnerableHistory() {
                 date: dateStr,
                 locationId: record.locationId,
                 locationName: record.location?.districtName || record.location?.provinceName || '',
+                recordedByRole: locationRoleMap[record.locationId] || '',
+                provinceName: record.location?.provinceName || '',
+                districtName: record.location?.districtName || '',
+                subDistrict: record.location?.subDistrict || '',
                 totalCount: 0,
                 records: [],
                 isByPass: bypassData.some(b => b.locationId === record.locationId && b.recordDate.toISOString().split('T')[0] === dateStr)
@@ -291,7 +324,9 @@ export async function getVulnerableHistory() {
         history[key].records.push(record)
     })
 
-    return Object.values(history).sort((a, b) => new Date(b.date) - new Date(a.date))
+    return Object.values(history)
+        .filter(h => h.totalCount > 0)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
 }
 
 export async function deleteVulnerableReport(dateStr, targetLocationId) {
@@ -366,7 +401,16 @@ export async function getVulnerableExportData() {
 
     const user = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { role: true, locationId: true, location: { select: { provinceName: true } } }
+        select: { 
+            role: true, 
+            locationId: true, 
+            location: { 
+                select: { 
+                    provinceName: true, 
+                    districtName: true 
+                } 
+            } 
+        }
     })
 
     if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
@@ -378,6 +422,13 @@ export async function getVulnerableExportData() {
         whereClause = {}
     } else if (user.role === 'SSJ') {
         whereClause = { location: { provinceName: user.location.provinceName } }
+    } else if (user.role === 'SSO') {
+        whereClause = { 
+            location: { 
+                provinceName: user.location.provinceName,
+                districtName: user.location.districtName
+            } 
+        }
     }
 
     const [normalRecords, bypassRecords] = await Promise.all([

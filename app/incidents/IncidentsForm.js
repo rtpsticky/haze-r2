@@ -26,6 +26,18 @@ export default function IncidentsForm({ user }) {
     const [showSuccess, setShowSuccess] = useState(false)
     const [incidents, setIncidents] = useState([])
 
+    const getRoleLabel = (role) => {
+        const mapping = {
+            'HOSPITAL': 'โรงพยาบาล',
+            'PCU': 'โรงพยาบาลส่งเสริมสุขภาพตำบล',
+            'SSO': 'สำนักงานสาธารณสุขอำเภอ',
+            'SSJ': 'สำนักงานสาธารณสุขจังหวัด',
+            'HEALTH_REGION': 'เขตสุขภาพ',
+            'ADMIN': 'ผู้ดูแลระบบ'
+        }
+        return mapping[role] || role || '-'
+    }
+
     // Location Selector State
     const [provinces, setProvinces] = useState([])
     const [districts, setDistricts] = useState([])
@@ -362,6 +374,9 @@ export default function IncidentsForm({ user }) {
                         <table className="min-w-full divide-y divide-slate-100">
                             <thead className="bg-slate-50">
                                 <tr>
+                                    <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600">จังหวัด</th>
+                                    <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600">อำเภอ</th>
+                                    <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600">ตำบล</th>
                                     <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600">ชื่อ-นามสกุล</th>
                                     <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600">สถานะ</th>
                                     <th scope="col" className="px-6 py-4 text-left text-sm font-semibold text-slate-600 whitespace-nowrap">รายละเอียด</th>
@@ -373,6 +388,9 @@ export default function IncidentsForm({ user }) {
                                 {incidents.length > 0 ? (
                                     incidents.map((incident) => (
                                         <tr key={incident.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-6 py-4 text-sm text-slate-600">{incident.location?.provinceName || '-'}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-600">{incident.location?.districtName || '-'}</td>
+                                            <td className="px-6 py-4 text-sm text-slate-600">{incident.location?.subDistrict || '-'}</td>
                                             <td className="px-6 py-4 text-sm font-medium text-slate-900">{incident.staffName}</td>
                                             <td className="px-6 py-4 text-sm">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${incident.status === 'เสียชีวิต' ? 'bg-red-100 text-red-800' : 'bg-orange-100 text-orange-800'}`}>{incident.status}</span>
