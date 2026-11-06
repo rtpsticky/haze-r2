@@ -42,6 +42,19 @@ export async function getDashboardStats(filters = {}) {
         const measureTotal = measureStats.reduce((acc, cur) => acc + cur._count._all, 0);
         const measureCompleted = measureStats.find((s) => s.status === true)?._count._all || 0;
 
+        // 1.1 MeasureLog by measureId (สำหรับ dashboard v2: ความคืบหน้ารายมาตรการ)
+        const measureByIdStats = await prisma.measureLog.groupBy({
+            by: ['measureId', 'status'],
+            where: whereClause,
+            _count: { _all: true },
+        });
+        const measureById = {};
+        measureByIdStats.forEach((m) => {
+            measureById[m.measureId] ??= { total: 0, completed: 0 };
+            measureById[m.measureId].total += m._count._all;
+            if (m.status === true) measureById[m.measureId].completed += m._count._all;
+        });
+
         // 2. PheocReport Stats (Latest Report Status) - FILTERED
         const latestPheoc = await prisma.pheocReport.findFirst({
             where: whereClause,
@@ -339,6 +352,7 @@ export async function getDashboardStats(filters = {}) {
                 total: measureTotal,
                 completed: measureCompleted,
                 pending: measureTotal - measureCompleted,
+                byId: measureById,
             },
             pheoc: latestPheoc ? {
                 ...latestPheoc,
