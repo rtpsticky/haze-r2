@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import { logout } from '@/app/actions/auth'
 import DashboardCard from '@/app/components/DashboardCard'
+import Link from 'next/link'
 
 async function getUser(userId) {
   return await prisma.user.findUnique({
@@ -54,6 +55,10 @@ export default async function Home() {
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-slate-800">แผงควบคุมหลัก</h2>
           <p className="text-slate-500 mt-1">เลือกเมนูเพื่อบันทึกหรือดูข้อมูล</p>
+          <Link href="/v2" className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 hover:bg-blue-100">
+            <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white">ใหม่</span>
+            ลองหน้ากรอกข้อมูลแบบใหม่ (v2) — กรอกง่ายขึ้น หน้าตาเดียวกับ Dashboard →
+          </Link>
         </div>
 
         <div className="space-y-10">
