@@ -5,7 +5,8 @@ import {
     Users, Package, HardHat, Building2, HeartPulse, Landmark, BedDouble,
     TriangleAlert, CalendarClock, Table2, Loader2, Stethoscope,
 } from 'lucide-react';
-import { getDashboardStats } from '@/app/actions/dashboard';
+import { getDashboardStats, getFiscalYears } from '@/app/actions/dashboard';
+import { fiscalYearOf, fiscalYearLabel } from './_lib/fiscal-year';
 import { getDistricts, getSubDistricts } from '@/app/actions/locations';
 import FilterBar from './_components/FilterBar';
 import PheocPanel from './_components/PheocBoard';
@@ -175,6 +176,17 @@ export default function DashboardPage() {
     const [stats, setStats] = useState(null);
     const [modal, setModal] = useState({ open: false, title: '', items: [], accent: '#334155' });
 
+    // ปีงบประมาณ (ตัดรอบ 1 ต.ค.) — เริ่มต้นที่ปีงบปัจจุบัน
+    const [currentFiscalYear] = useState(() => fiscalYearOf());
+    const [fiscalYear, setFiscalYear] = useState(currentFiscalYear);
+    const [fiscalYears, setFiscalYears] = useState([currentFiscalYear]);
+
+    useEffect(() => {
+        let cancelled = false;
+        getFiscalYears().then((res) => !cancelled && res?.years?.length && setFiscalYears(res.years));
+        return () => { cancelled = true; };
+    }, []);
+
     const [province, setProvince] = useState('');
     const [district, setDistrict] = useState('');
     const [subDistrict, setSubDistrict] = useState('');
@@ -202,20 +214,20 @@ export default function DashboardPage() {
         return () => { cancelled = true; };
     }, [province, district]);
 
-    const filterKey = `${province}|${district}|${subDistrict}`;
+    const filterKey = `${fiscalYear}|${province}|${district}|${subDistrict}`;
     const [loadedKey, setLoadedKey] = useState(null);
     const loading = loadedKey === null;
     const refreshing = !loading && loadedKey !== filterKey;
 
     useEffect(() => {
         let cancelled = false;
-        getDashboardStats({ province, district, subDistrict }).then((data) => {
+        getDashboardStats({ fiscalYear, province, district, subDistrict }).then((data) => {
             if (cancelled) return;
             setStats(data);
-            setLoadedKey(`${province}|${district}|${subDistrict}`);
+            setLoadedKey(`${fiscalYear}|${province}|${district}|${subDistrict}`);
         });
         return () => { cancelled = true; };
-    }, [province, district, subDistrict]);
+    }, [fiscalYear, province, district, subDistrict]);
 
     const d = useDerived(stats);
     const scope = [province && `จ.${province}`, district && `อ.${district}`, subDistrict && `ต.${subDistrict}`].filter(Boolean).join(' › ') || 'ทั้ง 5 จังหวัด';
@@ -229,7 +241,8 @@ export default function DashboardPage() {
                     <div className="flex-1 min-w-0">
                         <h1 className="text-xl md:text-2xl font-semibold leading-tight">Dashboard รายงานผลการดำเนินงาน</h1>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 mt-0.5">
-                            <span>เขตสุขภาพที่ 2 · PM2.5 ปี 2570</span>
+                            <span>เขตสุขภาพที่ 2 · PM2.5 ปีงบประมาณ {fiscalYear}{fiscalYear === currentFiscalYear && ' (ปัจจุบัน)'}</span>
+                            <span className="text-slate-400">{fiscalYearLabel(fiscalYear)}</span>
                             <span className="inline-flex items-center gap-1">
                                 <CalendarClock className="w-4 h-4" />
                                 PHEOC ล่าสุด {d?.latestReport ? new Date(d.latestReport).toLocaleDateString('th-TH', { dateStyle: 'medium' }) : '—'}
@@ -237,10 +250,11 @@ export default function DashboardPage() {
                         </div>
                     </div>
                     <FilterBar
+                        fiscalYear={fiscalYear} fiscalYears={fiscalYears} currentFiscalYear={currentFiscalYear} onFiscalYear={setFiscalYear}
                         province={province} district={district} subDistrict={subDistrict}
                         districts={districts} subDistricts={subDistricts}
                         onProvince={changeProvince} onDistrict={changeDistrict} onSubDistrict={setSubDistrict}
-                        onReset={() => changeProvince('')}
+                        onReset={() => { changeProvince(''); setFiscalYear(currentFiscalYear); }}
                     />
                 </div>
             </header>
@@ -253,6 +267,7 @@ export default function DashboardPage() {
                         {/* ขอบเขตข้อมูล */}
                         <div className="flex items-center gap-2 text-sm">
                             <span className="text-slate-500">กำลังแสดง</span>
+                            <span className="font-medium text-blue-800 bg-blue-50 border border-blue-100 rounded-full px-2.5 py-0.5">ปีงบ {fiscalYear}</span>
                             <span className="font-medium text-blue-800 bg-blue-50 border border-blue-100 rounded-full px-2.5 py-0.5">{scope}</span>
                             {refreshing && <Loader2 className="w-4 h-4 text-slate-400 animate-spin" aria-label="กำลังโหลด" />}
                         </div>

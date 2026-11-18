@@ -29,10 +29,18 @@ const selectStyles = {
 
 const toOpt = (v) => (v ? { value: v, label: v } : null);
 
-export default function FilterBar({ province, district, subDistrict, districts, subDistricts, onProvince, onDistrict, onSubDistrict, onReset }) {
-    const hasFilter = Boolean(province || district || subDistrict);
+export default function FilterBar({
+    fiscalYear, fiscalYears = [], currentFiscalYear, onFiscalYear,
+    province, district, subDistrict, districts, subDistricts, onProvince, onDistrict, onSubDistrict, onReset,
+}) {
+    const hasFilter = Boolean(province || district || subDistrict || (fiscalYear && fiscalYear !== currentFiscalYear));
+    const fyOpt = (y) => (y ? { value: y, label: `ปีงบ ${y}${y === currentFiscalYear ? ' (ปัจจุบัน)' : ''}` } : null);
     return (
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+            <div className="sm:w-[190px] shrink-0">
+                <Select instanceId="f-fiscal-year" aria-label="ปีงบประมาณ" placeholder="ปีงบประมาณ" isSearchable={false} styles={selectStyles}
+                    options={fiscalYears.map(fyOpt)} value={fyOpt(fiscalYear)} onChange={(o) => o && onFiscalYear(o.value)} />
+            </div>
             <div className="grid grid-cols-3 gap-2 flex-1 lg:w-[540px]">
                 <Select instanceId="f-province" aria-label="จังหวัด" placeholder="ทุกจังหวัด" isClearable styles={selectStyles}
                     options={PROVINCES.map(toOpt)} value={toOpt(province)} onChange={(o) => onProvince(o?.value || '')} />

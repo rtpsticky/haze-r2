@@ -2,6 +2,26 @@
 
 import prisma from '@/lib/prisma';
 import { unstable_noStore as noStore } from 'next/cache';
+import { fiscalYearOf, fiscalYearRange, fiscalYearList } from '@/app/dashboard/_lib/fiscal-year';
+
+/** รายการปีงบประมาณที่มีข้อมูล (ใหม่ → เก่า) + ปีงบปัจจุบัน */
+export async function getFiscalYears() {
+    noStore();
+    const current = fiscalYearOf();
+    try {
+        const mins = await Promise.all([
+            prisma.pheocReport.aggregate({ _min: { reportDate: true } }).then((r) => r._min.reportDate),
+            prisma.measureLog.aggregate({ _min: { createdAt: true } }).then((r) => r._min.createdAt),
+            ...['vulnerableData', 'vulnerableDataByPass', 'inventoryLog', 'cleanRoomReport', 'operationLog', 'staffIncident', 'activeCareLog', 'localAdminSupport']
+                .map((m) => prisma[m].aggregate({ _min: { recordDate: true } }).then((r) => r._min.recordDate)),
+        ]);
+        const earliest = mins.filter(Boolean).sort((a, b) => a - b)[0];
+        return { current, years: fiscalYearList(earliest) };
+    } catch (error) {
+        console.error('Error fetching fiscal years:', error);
+        return { current, years: [current] };
+    }
+}
 
 export async function getDashboardStats(filters = {}) {
     noStore();
@@ -20,6 +40,12 @@ export async function getDashboardStats(filters = {}) {
             }
         }
 
+        // ปีงบประมาณ (ตัดรอบ 1 ต.ค.) — ค่าเริ่มต้นคือปีงบปัจจุบัน
+        const fiscalYear = Number(filters.fiscalYear) || fiscalYearOf();
+        const fyRange = fiscalYearRange(fiscalYear);
+        const byRecordDate = { ...whereClause, recordDate: fyRange };
+        const byCreatedAt = { ...whereClause, createdAt: fyRange }; // MeasureLog ไม่มี recordDate
+
         const normalizeItemName = (name) => {
             if (!name) return name;
             const n = name.toLowerCase();
@@ -33,7 +59,7 @@ export async function getDashboardStats(filters = {}) {
         // 1. MeasureLog Stats (Group by Status) - FILTERED
         const measureStats = await prisma.measureLog.groupBy({
             by: ['status'],
-            where: whereClause,
+            where: byCreatedAt,
             _count: {
                 _all: true,
             },
@@ -45,7 +71,7 @@ export async function getDashboardStats(filters = {}) {
         // 1.1 MeasureLog by measureId (สำหรับ dashboard v2: ความคืบหน้ารายมาตรการ)
         const measureByIdStats = await prisma.measureLog.groupBy({
             by: ['measureId', 'status'],
-            where: whereClause,
+            where: byCreatedAt,
             _count: { _all: true },
         });
         const measureById = {};
@@ -57,7 +83,7 @@ export async function getDashboardStats(filters = {}) {
 
         // 2. PheocReport Stats (Latest Report Status) - FILTERED
         const latestPheoc = await prisma.pheocReport.findFirst({
-            where: whereClause,
+            where: { ...whereClause, reportDate: fyRange },
             orderBy: { reportDate: 'desc' },
         });
 
@@ -67,7 +93,8 @@ export async function getDashboardStats(filters = {}) {
             include: {
                 pheocReports: {
                     where: {
-                        recordedByRole: 'SSJ'
+                        recordedByRole: 'SSJ',
+                        reportDate: fyRange
                     },
                     orderBy: { reportDate: 'desc' },
                     take: 1
@@ -142,11 +169,11 @@ export async function getDashboardStats(filters = {}) {
         // 3. VulnerableData Stats (Total Targets by Group) - Merged with ByPass province-level priority
         const [normalVulnerable, bypassVulnerable, locationsData] = await Promise.all([
             prisma.vulnerableData.findMany({
-                where: whereClause,
+                where: byRecordDate,
                 include: { location: true }
             }),
             prisma.vulnerableDataByPass.findMany({
-                where: whereClause,
+                where: byRecordDate,
                 include: { location: true }
             }),
             prisma.location.findMany()
@@ -188,7 +215,7 @@ export async function getDashboardStats(filters = {}) {
         // 4. InventoryLog Stats (Latest Snapshot by Location + Item) - FILTERED
         // We need the latest record for each (locationId, itemName) pair
         const allInventoryRecords = await prisma.inventoryLog.findMany({
-            where: whereClause,
+            where: byRecordDate,
             orderBy: [
                 { recordDate: 'desc' },
                 { id: 'desc' }
@@ -220,7 +247,7 @@ export async function getDashboardStats(filters = {}) {
 
         // 5. CleanRoomReport Stats (Total Rooms & Services) - FILTERED
         const cleanRoomStats = await prisma.cleanRoomReport.aggregate({
-            where: whereClause,
+            where: byRecordDate,
             _sum: {
                 placeCount: true,
                 targetRoomCount: true,
@@ -239,13 +266,13 @@ export async function getDashboardStats(filters = {}) {
                 standard2Count: true,
                 standard3Count: true
             },
-            where: whereClause
+            where: byRecordDate
         });
 
         // 2.7 Operation Logs Stats (Detailed Grouping) - FILTERED
         const operationStats = await prisma.operationLog.groupBy({
             by: ['activityType', 'targetGroup', 'itemName'],
-            where: whereClause,
+            where: byRecordDate,
             _sum: {
                 amount: true
             }
@@ -254,7 +281,7 @@ export async function getDashboardStats(filters = {}) {
         // 10. Supply Snapshot (By Province and Item) - NEW
         const operationByProvinceAndItem = await prisma.operationLog.groupBy({
             where: {
-                ...whereClause,
+                ...byRecordDate,
                 itemName: { not: null },
                 activityType: { not: 'DUST_NET' }
             },
@@ -319,7 +346,7 @@ export async function getDashboardStats(filters = {}) {
 
         // 7. ActiveCareLog Stats - FILTERED
         const activeCareStats = await prisma.activeCareLog.aggregate({
-            where: whereClause,
+            where: byRecordDate,
             _sum: {
                 households: true,
                 people: true,
@@ -329,7 +356,7 @@ export async function getDashboardStats(filters = {}) {
 
         // 8. LocalAdminSupport Stats - FILTERED
         const localAdminStats = await prisma.localAdminSupport.aggregate({
-            where: whereClause,
+            where: byRecordDate,
             _sum: {
                 orgCount: true,
                 maskSupport: true,
@@ -341,13 +368,14 @@ export async function getDashboardStats(filters = {}) {
         // 9. Staff Incident Stats - FILTERED
         const staffIncidentStats = await prisma.staffIncident.groupBy({
             by: ['status'],
-            where: whereClause,
+            where: byRecordDate,
             _count: {
                 _all: true
             }
         });
 
         return {
+            fiscalYear,
             measure: {
                 total: measureTotal,
                 completed: measureCompleted,
