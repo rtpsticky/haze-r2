@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import ExportPheocButton from '@/app/pheoc/ExportPheocButton';
+import ExportPheocButton from '@/app/v1/pheoc/ExportPheocButton';
 import PageHeader from '../_components/PageHeader';
 import { requireUser, isRegionAdmin } from '../_lib/user';
 import PheocFormV2 from './PheocFormV2';

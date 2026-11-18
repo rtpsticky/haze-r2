@@ -93,6 +93,7 @@ export async function savePheocReport(prevState, formData) {
                 data: dataToUpdate
             })
             revalidatePath('/pheoc')
+            revalidatePath('/v1/pheoc')
             return { message: 'อัปเดตรายงาน PHEOC เรียบร้อยแล้ว', success: true }
         } else {
             // Create new
@@ -108,6 +109,7 @@ export async function savePheocReport(prevState, formData) {
                 }
             })
             revalidatePath('/pheoc')
+            revalidatePath('/v1/pheoc')
             return { message: 'บันทึกรายงาน PHEOC เรียบร้อยแล้ว', success: true }
         }
     } catch (error) {
@@ -136,6 +138,7 @@ export async function deletePheocReport(id) {
             where: { id: parseInt(id) }
         })
         revalidatePath('/pheoc')
+        revalidatePath('/v1/pheoc')
         return { message: 'ลบรายงานเรียบร้อยแล้ว', success: true }
     } catch (error) {
         console.error('Database error:', error)

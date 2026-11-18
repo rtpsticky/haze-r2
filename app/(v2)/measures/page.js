@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma';
-import ExportMeasuresButton from '@/app/measures/ExportMeasuresButton';
+import ExportMeasuresButton from '@/app/v1/measures/ExportMeasuresButton';
 import PageHeader from '../_components/PageHeader';
 import { requireUser } from '../_lib/user';
 import MeasuresFormV2 from './MeasuresFormV2';

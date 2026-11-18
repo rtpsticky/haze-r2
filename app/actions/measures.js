@@ -83,6 +83,7 @@ export async function saveMeasures(prevState, formData) {
         }
 
         revalidatePath('/measures')
+        revalidatePath('/v1/measures')
         return { message: 'บันทึกข้อมูลเรียบร้อยแล้ว', success: true }
     } catch (error) {
         console.error('Error saving measures:', error)

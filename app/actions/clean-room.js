@@ -129,6 +129,7 @@ export async function saveCleanRoomData(prevState, formData) {
         }
 
         revalidatePath('/clean-room')
+        revalidatePath('/v1/clean-room')
         return { message: 'บันทึกข้อมูลเรียบร้อยแล้ว', success: true }
 
     } catch (error) {
@@ -175,6 +176,7 @@ export async function updateCleanRoomRecords(records) {
         }
 
         revalidatePath('/clean-room')
+        revalidatePath('/v1/clean-room')
         return { message: 'แก้ไขข้อมูลเรียบร้อยแล้ว', success: true }
 
     } catch (error) {
@@ -327,6 +329,7 @@ export async function deleteCleanRoomReport(dateStr, targetLocationId) {
         })
 
         revalidatePath('/clean-room')
+        revalidatePath('/v1/clean-room')
         return { success: true }
     } catch (error) {
         console.error('Error deleting clean room report:', error)

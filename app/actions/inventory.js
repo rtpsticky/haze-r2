@@ -96,6 +96,7 @@ export async function saveInventoryData(prevState, formData) {
         }
 
         revalidatePath('/inventory')
+        revalidatePath('/v1/inventory')
         return { message: 'บันทึกข้อมูลเรียบร้อยแล้ว', success: true }
 
     } catch (error) {
@@ -148,6 +149,7 @@ export async function updateInventoryRecords(prevState, formData) {
         }
 
         revalidatePath('/inventory')
+        revalidatePath('/v1/inventory')
         return { message: 'แก้ไขข้อมูลเรียบร้อยแล้ว', success: true }
 
     } catch (error) {
@@ -300,6 +302,7 @@ export async function deleteInventoryReport(dateStr, targetLocationId) {
             }
         })
         revalidatePath('/inventory')
+        revalidatePath('/v1/inventory')
         return { success: true, message: 'ลบข้อมูลเรียบร้อยแล้ว' }
     } catch (error) {
         console.error('Error deleting inventory data:', error)

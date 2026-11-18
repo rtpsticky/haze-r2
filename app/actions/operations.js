@@ -271,6 +271,7 @@ export async function deleteOperationData(dateString, locationId) {
         })
 
         revalidatePath('/operations')
+        revalidatePath('/v1/operations')
         return { success: true, message: 'ลบข้อมูลสำเร็จ' }
     } catch (error) {
         console.error('Delete error:', error)
@@ -429,6 +430,7 @@ export async function saveOperationData(prevState, formData) {
         })
 
         revalidatePath('/operations')
+        revalidatePath('/v1/operations')
         return { success: true, message: 'บันทึกข้อมูลสำเร็จ' }
     } catch (e) {
         console.error(e)

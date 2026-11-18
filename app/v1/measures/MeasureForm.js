@@ -127,7 +127,7 @@ export default function MeasureForm({ existingData }) {
                 <h2 className="text-2xl font-bold text-slate-800 mb-2">บันทึกข้อมูลสำเร็จ</h2>
                 <p className="text-slate-500 mb-6">ระบบได้บันทึกข้อมูลมาตรการเรียบร้อยแล้ว</p>
                 <div className="flex flex-col gap-3">
-                    <Link href="/" className="w-full inline-flex justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                    <Link href="/v1" className="w-full inline-flex justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
                         กลับสู่หน้าหลัก
                     </Link>
                     <button onClick={() => window.location.reload()} className="w-full inline-flex justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50">

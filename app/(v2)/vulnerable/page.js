@@ -1,5 +1,5 @@
 import { getVulnerableHistory } from '@/app/actions/vulnerable';
-import ExportVulnerableButton from '@/app/vulnerable/ExportVulnerableButton';
+import ExportVulnerableButton from '@/app/v1/vulnerable/ExportVulnerableButton';
 import PageHeader from '../_components/PageHeader';
 import { requireUser } from '../_lib/user';
 import VulnerableFormV2 from './VulnerableFormV2';

@@ -10,7 +10,7 @@ export const metadata = {
     title: 'บันทึกข้อมูล | Haze-r2',
 };
 
-// หน้ากรอกข้อมูล v2 — ใช้ฟอนต์/โทนสีเดียวกับ Dashboard (หน้าเดิมยังอยู่ที่ route เดิมเป็น v1)
+// หน้ากรอกข้อมูล v2 — ใช้ฟอนต์/โทนสีเดียวกับ Dashboard (หน้าเดิมย้ายไปอยู่ที่ /v1)
 export default function V2Layout({ children }) {
     return (
         <div className={`${kanit.className} antialiased min-h-screen bg-slate-100/70 text-slate-900 text-[15px]`}>

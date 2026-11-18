@@ -184,6 +184,7 @@ export async function saveIncident(prevState, formData) {
         })
 
         revalidatePath('/incidents')
+        revalidatePath('/v1/incidents')
         return { success: true, message: 'บันทึกข้อมูลสำเร็จ (รอนุมัติจาก สสจ.)' }
     } catch (error) {
         console.error('Create Incident Error:', error)
@@ -231,6 +232,7 @@ export async function updateIncident(prevState, formData) {
         })
 
         revalidatePath('/incidents')
+        revalidatePath('/v1/incidents')
         return { success: true, message: 'แก้ไขข้อมูลสำเร็จ' }
     } catch (error) {
         console.error('Update Incident Error:', error)
@@ -269,6 +271,7 @@ export async function approveIncident(id) {
         })
 
         revalidatePath('/incidents')
+        revalidatePath('/v1/incidents')
         return { success: true, message: 'อนุมัติรายการเรียบร้อยแล้ว' }
     } catch (error) {
         console.error('Approve Incident Error:', error)
@@ -304,6 +307,7 @@ export async function deleteIncident(id) {
     try {
         await prisma.staffIncident.delete({ where: { id } })
         revalidatePath('/incidents')
+        revalidatePath('/v1/incidents')
         return { success: true, message: 'ลบข้อมูลสำเร็จ' }
     } catch (error) {
         console.error('Delete Incident Error:', error)

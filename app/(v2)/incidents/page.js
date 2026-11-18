@@ -1,4 +1,4 @@
-import ExportIncidentsButton from '@/app/incidents/ExportIncidentsButton';
+import ExportIncidentsButton from '@/app/v1/incidents/ExportIncidentsButton';
 import PageHeader from '../_components/PageHeader';
 import { requireUser } from '../_lib/user';
 import IncidentsFormV2 from './IncidentsFormV2';

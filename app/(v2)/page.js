@@ -39,7 +39,7 @@ export default async function V2Home() {
                         <p className="text-sm text-slate-500 mt-0.5">เขตสุขภาพที่ 2 · เลือกหัวข้อที่ต้องการบันทึก</p>
                     </div>
                     <div className="flex items-center gap-2">
-                        <Link href="/" className="h-10 px-3 rounded-xl text-sm font-medium inline-flex items-center gap-1.5 border border-slate-200 bg-white text-slate-600 hover:bg-slate-100">
+                        <Link href="/v1" className="h-10 px-3 rounded-xl text-sm font-medium inline-flex items-center gap-1.5 border border-slate-200 bg-white text-slate-600 hover:bg-slate-100">
                             <History className="w-4 h-4" /> แบบเดิม (v1)
                         </Link>
                         <form action={logout}>

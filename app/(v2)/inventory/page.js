@@ -1,5 +1,5 @@
 import { getInventoryHistory } from '@/app/actions/inventory';
-import ExportInventoryButton from '@/app/inventory/ExportInventoryButton';
+import ExportInventoryButton from '@/app/v1/inventory/ExportInventoryButton';
 import PageHeader from '../_components/PageHeader';
 import { requireUser } from '../_lib/user';
 import InventoryFormV2 from './InventoryFormV2';

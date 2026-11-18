@@ -22,7 +22,7 @@ export default async function Page() {
 
     const user = await getUser(session.userId)
     if (!user || !['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'].includes(user.role)) {
-        redirect('/')
+        redirect('/v1')
     }
     const history = await getVulnerableHistory()
 

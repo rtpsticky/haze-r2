@@ -224,6 +224,7 @@ export async function deleteActiveCareData(dateString, locationId) {
         })
 
         revalidatePath('/active-care')
+        revalidatePath('/v1/active-care')
         return { success: true, message: 'ลบข้อมูลสำเร็จ' }
     } catch (error) {
         console.error('Delete error:', error)
@@ -300,6 +301,7 @@ export async function saveActiveCareData(prevState, formData) {
         })
 
         revalidatePath('/active-care')
+        revalidatePath('/v1/active-care')
         return { success: true, message: 'บันทึกข้อมูลสำเร็จ' }
     } catch (error) {
         console.error('Error saving active care data:', error)

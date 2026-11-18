@@ -11,7 +11,7 @@ export default function PageHeader({ menuKey, title, subtitle, user, actions }) 
     return (
         <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-200">
             <div className="max-w-5xl mx-auto px-4 md:px-6 py-3 flex flex-wrap items-center gap-3">
-                <Link href="/v2" aria-label="กลับหน้าเมนู" className="grid place-items-center w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 shrink-0">
+                <Link href="/" aria-label="กลับหน้าเมนู" className="grid place-items-center w-10 h-10 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 shrink-0">
                     <ArrowLeft className="w-5 h-5" />
                 </Link>
                 <div className="flex-1 min-w-0">

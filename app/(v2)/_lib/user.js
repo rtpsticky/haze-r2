@@ -12,7 +12,7 @@ export async function requireUser(allowedRoles = null) {
         include: { location: true },
     });
     if (!user) redirect('/login');
-    if (allowedRoles && !allowedRoles.includes(user.role)) redirect('/v2');
+    if (allowedRoles && !allowedRoles.includes(user.role)) redirect('/');
 
     // ส่งเฉพาะฟิลด์ที่หน้าใช้ ไปยัง client component (ไม่ส่ง password hash)
     return {

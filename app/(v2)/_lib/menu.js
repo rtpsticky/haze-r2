@@ -9,29 +9,29 @@ export const SECTIONS = [
     {
         no: '1', title: 'มาตรการและการจัดการ',
         items: [
-            { key: 'measures', href: '/v2/measures', v1: '/measures', icon: ClipboardCheck, title: 'บันทึกมาตรการ', desc: 'ติ๊กสถานะมาตรการ 1.1 – 4.2 ประจำวัน', roles: ['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION'] },
-            { key: 'pheoc', href: '/v2/pheoc', v1: '/pheoc', icon: Siren, title: 'รายงาน PHEOC', desc: 'สถานะศูนย์ปฏิบัติการฉุกเฉิน', roles: ['SSJ', 'ADMIN', 'HEALTH_REGION'] },
+            { key: 'measures', href: '/measures', v1: '/v1/measures', icon: ClipboardCheck, title: 'บันทึกมาตรการ', desc: 'ติ๊กสถานะมาตรการ 1.1 – 4.2 ประจำวัน', roles: ['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION'] },
+            { key: 'pheoc', href: '/pheoc', v1: '/v1/pheoc', icon: Siren, title: 'รายงาน PHEOC', desc: 'สถานะศูนย์ปฏิบัติการฉุกเฉิน', roles: ['SSJ', 'ADMIN', 'HEALTH_REGION'] },
         ],
     },
     {
         no: '2', title: 'กลุ่มเปราะบาง / กลุ่มเสี่ยง',
         items: [
-            { key: 'vulnerable', href: '/v2/vulnerable', v1: '/vulnerable', icon: Users, title: 'ข้อมูลกลุ่มเปราะบาง', desc: 'จำนวนเป้าหมาย 6 กลุ่ม', roles: ['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'] },
+            { key: 'vulnerable', href: '/vulnerable', v1: '/v1/vulnerable', icon: Users, title: 'ข้อมูลกลุ่มเปราะบาง', desc: 'จำนวนเป้าหมาย 6 กลุ่ม', roles: ['SSJ', 'SSO', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'] },
         ],
     },
     {
         no: '3', title: 'ทรัพยากรและสถานที่',
         items: [
-            { key: 'inventory', href: '/v2/inventory', v1: '/inventory', icon: Package, title: 'เวชภัณฑ์คงคลัง', desc: 'หน้ากาก และมุ้งสู้ฝุ่นคงเหลือ', roles: ALL },
-            { key: 'clean-room', href: '/v2/clean-room', v1: '/clean-room', icon: Building2, title: 'ห้องปลอดฝุ่น', desc: 'จำนวนห้อง และผลผ่านมาตรฐาน', roles: ALL },
+            { key: 'inventory', href: '/inventory', v1: '/v1/inventory', icon: Package, title: 'เวชภัณฑ์คงคลัง', desc: 'หน้ากาก และมุ้งสู้ฝุ่นคงเหลือ', roles: ALL },
+            { key: 'clean-room', href: '/clean-room', v1: '/v1/clean-room', icon: Building2, title: 'ห้องปลอดฝุ่น', desc: 'จำนวนห้อง และผลผ่านมาตรฐาน', roles: ALL },
         ],
     },
     {
         no: '4', title: 'การปฏิบัติการและการสนับสนุน',
         items: [
-            { key: 'operations', href: '/v2/operations', v1: '/operations', icon: HardHat, title: 'แจกหน้ากาก / มุ้งสู้ฝุ่น', desc: 'ผลการแจก PPE ตามกลุ่มเป้าหมาย', roles: ALL },
-            { key: 'active-care', href: '/v2/active-care', v1: '/active-care', icon: HeartPulse, title: 'การดูแลเชิงรุก', desc: 'เยี่ยมบ้าน คัดกรอง และการสนับสนุน อปท.', roles: ALL },
-            { key: 'incidents', href: '/v2/incidents', v1: '/incidents', icon: TriangleAlert, title: 'อุบัติการณ์เจ้าหน้าที่', desc: 'บาดเจ็บ / เสียชีวิต จากการปฏิบัติงาน', roles: ['SSJ', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'] },
+            { key: 'operations', href: '/operations', v1: '/v1/operations', icon: HardHat, title: 'แจกหน้ากาก / มุ้งสู้ฝุ่น', desc: 'ผลการแจก PPE ตามกลุ่มเป้าหมาย', roles: ALL },
+            { key: 'active-care', href: '/active-care', v1: '/v1/active-care', icon: HeartPulse, title: 'การดูแลเชิงรุก', desc: 'เยี่ยมบ้าน คัดกรอง และการสนับสนุน อปท.', roles: ALL },
+            { key: 'incidents', href: '/incidents', v1: '/v1/incidents', icon: TriangleAlert, title: 'อุบัติการณ์เจ้าหน้าที่', desc: 'บาดเจ็บ / เสียชีวิต จากการปฏิบัติงาน', roles: ['SSJ', 'ADMIN', 'HEALTH_REGION', 'HOSPITAL', 'RPS', 'PCU'] },
         ],
     },
 ];

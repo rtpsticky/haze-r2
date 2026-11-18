@@ -1,4 +1,4 @@
-import ExportActiveCareButton from '@/app/active-care/ExportActiveCareButton';
+import ExportActiveCareButton from '@/app/v1/active-care/ExportActiveCareButton';
 import PageHeader from '../_components/PageHeader';
 import { requireUser } from '../_lib/user';
 import ActiveCareFormV2 from './ActiveCareFormV2';

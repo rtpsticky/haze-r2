@@ -1,5 +1,5 @@
 import { getCleanRoomHistory } from '@/app/actions/clean-room';
-import ExportCleanRoomButton from '@/app/clean-room/ExportCleanRoomButton';
+import ExportCleanRoomButton from '@/app/v1/clean-room/ExportCleanRoomButton';
 import PageHeader from '../_components/PageHeader';
 import { requireUser } from '../_lib/user';
 import CleanRoomFormV2 from './CleanRoomFormV2';
