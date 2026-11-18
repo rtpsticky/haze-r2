@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, MapPin, History } from 'lucide-react';
+import { ArrowLeft, MapPin } from 'lucide-react';
 import { menuItem, ROLE_LABEL } from '../_lib/menu';
 
 /** ส่วนหัวหน้ากรอกข้อมูล (ติดบนสุด) — โทนเดียวกับ Dashboard */
@@ -32,11 +32,6 @@ export default function PageHeader({ menuKey, title, subtitle, user, actions }) 
                 </div>
                 <div className="flex items-center gap-2">
                     {actions}
-                    {item?.v1 && (
-                        <Link href={item.v1} className="h-10 px-3 rounded-xl text-sm font-medium inline-flex items-center gap-1.5 border border-slate-200 bg-white text-slate-600 hover:bg-slate-100" title="เปิดหน้ากรอกแบบเดิม">
-                            <History className="w-4 h-4" /> แบบเดิม (v1)
-                        </Link>
-                    )}
                 </div>
             </div>
         </header>
